@@ -6,7 +6,6 @@
 # --------------------------------------
 
 import numpy as np
-import numpy.random as nr
 
 class OUNoise:
     """docstring for OUNoise"""
@@ -23,6 +22,6 @@ class OUNoise:
 
     def noise(self):
         x = self.state
-        dx = self.theta * (self.mu - x) + self.sigma * nr.randn(len(x))
+        dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
         self.state = x + dx
         return self.state
