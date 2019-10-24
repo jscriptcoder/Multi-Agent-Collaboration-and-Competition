@@ -8,7 +8,7 @@
 import numpy as np
 
 class OUNoise:
-    """docstring for OUNoise"""
+    
     def __init__(self, action_size, mu=0, theta=0.15, sigma=0.2):
         self.action_size = action_size
         self.mu = mu

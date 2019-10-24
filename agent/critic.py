@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .device import device
 
@@ -18,15 +17,15 @@ class Critic(nn.Module):
         
         self.to(device)
 
-    def forward(self, state):
+    def forward(self, state, action):
         if type(state) != torch.Tensor:
             state = torch.FloatTensor(state).to(device)
         
-        x = self.layers[0](state)
+#        x = self.layers[0](state)
+        x = torch.cat((state, action), dim=1)
         
-        for layer in self.layers[1:-1]:
+#        for layer in self.layers[1:-1]:
+        for layer in self.layers[:-1]:
             x = self.activ(layer(x))
-
-        value = self.layers[-1](x)
     
-        return value
+        return self.layers[-1](x)
