@@ -5,23 +5,19 @@ import torch.nn.functional as F
 from .actor import Actor
 from .critic import Critic
 from .ou_noise import OUNoise
-from .experience_replay import ReplayBuffer
 from .device import device
 from .utils import make_experience, soft_update
 
-class Agent():
+class DDPGAgent():
     """Interacts with and learns from the environment."""
     
-    def __init__(self, config):
+    def __init__(self, config, shared_memory):
         """Initialize an Agent object.
         
         Params
         ======
             config (Config)
         """
-        
-        np.random.seed(config.seed)
-        torch.manual_seed(config.seed)
         
         self.config = config
 
@@ -43,12 +39,10 @@ class Agent():
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic(config.state_size, 
-                                   config.action_size, 
                                    config.hidden_critic, 
                                    config.activ_critic)
         
         self.critic_target = Critic(config.state_size, 
-                                   config.action_size, 
                                    config.hidden_critic, 
                                    config.activ_critic)
         
@@ -59,17 +53,21 @@ class Agent():
                                                 weight_decay=config.weight_decay)
 
         # Noise process
-        self.noise = OUNoise(config.action_size)
-
-        # Replay memory
-        self.memory = ReplayBuffer(config.buffer_size, 
-                                   config.batch_size, 
-                                   config.seed)
+        self.noise = OUNoise(config.action_size, 
+                             config.ou_mu, 
+                             config.ou_theta, 
+                             config.ou_sigma)
+        
+        # Shared replay memory
+        self.memory = shared_memory
+        
+        self.noise_weight = config.noise_weight
     
     def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         
         batch_size = self.config.batch_size
+        update_every = self.config.update_every
         
         # Save experience / reward
         experience = make_experience(state, 
@@ -79,11 +77,16 @@ class Agent():
                                      done)
         
         self.memory.add(experience)
-
-        # Learn, if enough samples are available in memory
-        if len(self.memory) > batch_size:
-            experiences = self.memory.sample()
-            self.learn(experiences)
+        
+        # Learn every update_every time steps.
+        self.t_step = (self.t_step + 1) % update_every
+        
+        if self.t_step == 0:
+    
+            # Learn, if enough samples are available in memory
+            if len(self.memory) > batch_size:
+                experiences = self.memory.sample()
+                self.learn(experiences)
 
     def act(self, state, add_noise=True):
         """Returns actions for given state as per current policy."""
@@ -94,7 +97,9 @@ class Agent():
         self.actor_local.train()
         
         if add_noise:
-            action += self.noise.sample()
+            action += self.noise.sample() * self.noise_weight
+        
+        self.noise_weight *= self.noise_decay
         
         return np.clip(action, -1, 1)
 
