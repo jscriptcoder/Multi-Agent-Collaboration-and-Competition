@@ -8,11 +8,10 @@ from collections import namedtuple, deque
 
 gym.logger.set_level(40)
 
-def layer_init(layer, w_scale=1.0):
-    nn.init.orthogonal_(layer.weight.data)
-    layer.weight.data.mul_(w_scale)
-    nn.init.constant_(layer.bias.data, 0)
-    return layer
+def hidden_init(layer):
+    fan_in = layer.weight.data.size()[0]
+    lim = 1. / np.sqrt(fan_in)
+    return (-lim, lim)
 
 def soft_update(local_model, target_model, tau):
     """Soft update model parameters.

@@ -100,27 +100,27 @@ class DDPGAgent():
         gamma = self.config.gamma
         tau = self.config.tau
         
-        # torch.Size([128, 2, 24])
+        # torch.Size([batch_size, 2, 24])
         states = torch.from_numpy(
                 np.array([e.state for e in experiences if e is not None]))\
                 .float().to(device)
         
-        # torch.Size([128, 2, 2])
+        # torch.Size([batch_size, 2, 2])
         actions = torch.from_numpy(
                 np.array([e.action for e in experiences if e is not None]))\
                 .long().to(device)
         
-        # torch.Size([128, 2])
+        # torch.Size([batch_size, 2])
         rewards = torch.from_numpy(
                 np.array([e.reward for e in experiences if e is not None]))\
                 .float().to(device)
         
-        # torch.Size([128, 2, 24])
+        # torch.Size([batch_size, 2, 24])
         next_states = torch.from_numpy(
                 np.array([e.next_state for e in experiences if e is not None]))\
                 .float().to(device)
         
-        # torch.Size([128, 2])
+        # torch.Size([batch_size, 2])
         dones = torch.from_numpy(
                 np.array([e.done for e in experiences if e is not None])\
                 .astype(np.uint8)).float().to(device)   
@@ -132,21 +132,30 @@ class DDPGAgent():
         actions_next = [self.actor_target(next_states[:, j, :]) \
                         for j in range(num_agents)]
         
-        # torch.Size([128, 4])
+        # torch.Size([batch_size, 4])
         actions_next = torch.cat(actions_next, dim=1).to(device)
         
-        # next_states.view(batch_size, -1) => torch.Size([128, 48])
+        # next_states.view(batch_size, -1) => torch.Size([batch_size, 48])
+        # torch.Size([batch_size, 1])
         Q_targets_next = self.critic_target(next_states.view(batch_size, -1), 
                                             actions_next)
+        
+        # torch.Size([batch_size, 1])
+        rewards = rewards[:, i].view(-1, 1)
+        
+        # torch.Size([batch_size, 1])
+        dones = dones[:, i].view(-1, 1)
 
         # Compute Q targets for current states
-        Q_targets = rewards[:, i] + (gamma * Q_targets_next * (1 - dones[:, i]))
+        # torch.Size([batch_size, 1])
+        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
         
         # Compute critic loss
-        # states.view(batch_size, -1) => torch.Size([128, 48])
-        # actions.view(batch_size, -1) => torch.Size([128, 4])
-        Q_expected = self.critic_local(states.view(batch_size,), 
-                                       actions.view(batch_size,))
+        # states.view(batch_size, -1) => torch.Size([batch_size, 48])
+        # actions.view(batch_size, -1) => torch.Size([batch_size, 4])
+        # torch.Size([batch_size 1])
+        Q_expected = self.critic_local(states.view(batch_size, -1), 
+                                       actions.view(batch_size, -1))
         
         critic_loss = F.mse_loss(Q_expected, Q_targets)
         

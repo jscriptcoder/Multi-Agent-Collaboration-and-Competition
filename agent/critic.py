@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 from .device import device
+from .utils import hidden_init
 
 class Critic(nn.Module):
     def __init__(self, state_size, action_size, hidden_size, activ, num_agents):
@@ -16,6 +17,14 @@ class Critic(nn.Module):
         self.activ = activ
         
         self.to(device)
+        
+        self.reset_parameters()
+    
+    def reset_parameters(self):
+        for layer in self.layers[0:-1]:
+            layer.weight.data.uniform_(*hidden_init(layer))
+
+        self.layers[-1].weight.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, state, action):
         if type(state) != torch.Tensor:
