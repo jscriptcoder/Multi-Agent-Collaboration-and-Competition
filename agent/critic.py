@@ -4,10 +4,10 @@ import torch.nn as nn
 from .device import device
 
 class Critic(nn.Module):
-    def __init__(self, state_size, hidden_size, activ):
+    def __init__(self, state_size, action_size, hidden_size, activ, num_agents):
         super().__init__()
         
-        dims = (state_size,) + hidden_size + (1,)
+        dims = ((state_size + action_size)*num_agents,) + hidden_size + (1,)
         
         self.layers = nn.ModuleList([nn.Linear(dim_in, dim_out) \
                                      for dim_in, dim_out \
@@ -21,10 +21,8 @@ class Critic(nn.Module):
         if type(state) != torch.Tensor:
             state = torch.FloatTensor(state).to(device)
         
-#        x = self.layers[0](state)
-        x = torch.cat((state, action), dim=1)
+        x = torch.cat((state, action.float()), dim=1)
         
-#        for layer in self.layers[1:-1]:
         for layer in self.layers[:-1]:
             x = self.activ(layer(x))
     

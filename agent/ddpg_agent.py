@@ -6,12 +6,12 @@ from .actor import Actor
 from .critic import Critic
 from .ou_noise import OUNoise
 from .device import device
-from .utils import make_experience, soft_update
+from .utils import soft_update
 
 class DDPGAgent():
     """Interacts with and learns from the environment."""
     
-    def __init__(self, config, shared_memory):
+    def __init__(self, config):
         """Initialize an Agent object.
         
         Params
@@ -28,9 +28,9 @@ class DDPGAgent():
                                  config.activ_actor)
         
         self.actor_target = Actor(config.state_size, 
-                                 config.action_size, 
-                                 config.hidden_actor, 
-                                 config.activ_actor)
+                                  config.action_size, 
+                                  config.hidden_actor, 
+                                  config.activ_actor)
         
         soft_update(self.actor_local, self.actor_target, 1.0)
         
@@ -38,13 +38,17 @@ class DDPGAgent():
                                               lr=config.lr_actor)
 
         # Critic Network (w/ Target Network)
-        self.critic_local = Critic(config.state_size, 
+        self.critic_local = Critic(config.state_size,
+                                   config.action_size,
                                    config.hidden_critic, 
-                                   config.activ_critic)
+                                   config.activ_critic, 
+                                   config.num_agents)
         
         self.critic_target = Critic(config.state_size, 
-                                   config.hidden_critic, 
-                                   config.activ_critic)
+                                    config.action_size,
+                                    config.hidden_critic, 
+                                    config.activ_critic, 
+                                    config.num_agents)
         
         soft_update(self.critic_local, self.critic_target, 1.0)
         
@@ -58,38 +62,12 @@ class DDPGAgent():
                              config.ou_theta, 
                              config.ou_sigma)
         
-        # Shared replay memory
-        self.memory = shared_memory
-        
         self.noise_weight = config.noise_weight
     
-    def step(self, state, action, reward, next_state, done):
-        """Save experience in replay memory, and use random sample from buffer to learn."""
-        
-        batch_size = self.config.batch_size
-        update_every = self.config.update_every
-        
-        # Save experience / reward
-        experience = make_experience(state, 
-                                     action, 
-                                     reward, 
-                                     next_state, 
-                                     done)
-        
-        self.memory.add(experience)
-        
-        # Learn every update_every time steps.
-        self.t_step = (self.t_step + 1) % update_every
-        
-        if self.t_step == 0:
-    
-            # Learn, if enough samples are available in memory
-            if len(self.memory) > batch_size:
-                experiences = self.memory.sample()
-                self.learn(experiences)
-
     def act(self, state, add_noise=True):
         """Returns actions for given state as per current policy."""
+        
+        noise_decay = self.config.noise_decay
         
         self.actor_local.eval()
         with torch.no_grad():
@@ -99,14 +77,14 @@ class DDPGAgent():
         if add_noise:
             action += self.noise.sample() * self.noise_weight
         
-        self.noise_weight *= self.noise_decay
+        self.noise_weight *= noise_decay
         
         return np.clip(action, -1, 1)
 
     def reset(self):
         self.noise.reset()
 
-    def learn(self, experiences):
+    def learn(self, experiences, i):
         """Update policy and value parameters using given batch of experience tuples.
         Q_targets = r + γ * critic_target(next_state, actor_target(next_state))
         where:
@@ -117,57 +95,90 @@ class DDPGAgent():
         ======
             experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples 
         """
-        
+        num_agents = self.config.num_agents
+        batch_size = self.config.batch_size
         gamma = self.config.gamma
         tau = self.config.tau
         
+        # torch.Size([128, 2, 24])
         states = torch.from_numpy(
-                np.vstack([e.state for e in experiences if e is not None]))\
+                np.array([e.state for e in experiences if e is not None]))\
                 .float().to(device)
-        actions = torch.from_numpy(
-                np.vstack([e.action for e in experiences if e is not None]))\
-                .long().to(device)
-        rewards = torch.from_numpy(
-                np.vstack([e.reward for e in experiences if e is not None]))\
-                .float().to(device)
-        next_states = torch.from_numpy(
-                np.vstack([e.next_state for e in experiences if e is not None]))\
-                .float().to(device)
-        dones = torch.from_numpy(
-                np.vstack([e.done for e in experiences if e is not None])\
-                .astype(np.uint8)).float().to(device)
         
+        # torch.Size([128, 2, 2])
+        actions = torch.from_numpy(
+                np.array([e.action for e in experiences if e is not None]))\
+                .long().to(device)
+        
+        # torch.Size([128, 2])
+        rewards = torch.from_numpy(
+                np.array([e.reward for e in experiences if e is not None]))\
+                .float().to(device)
+        
+        # torch.Size([128, 2, 24])
+        next_states = torch.from_numpy(
+                np.array([e.next_state for e in experiences if e is not None]))\
+                .float().to(device)
+        
+        # torch.Size([128, 2])
+        dones = torch.from_numpy(
+                np.array([e.done for e in experiences if e is not None])\
+                .astype(np.uint8)).float().to(device)   
         
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
-        actions_next = self.actor_target(next_states)
-        Q_targets_next = self.critic_target(next_states, actions_next)
         
+        # Collect the actions for all the agents in the next state
+        actions_next = [self.actor_target(next_states[:, j, :]) \
+                        for j in range(num_agents)]
+        
+        # torch.Size([128, 4])
+        actions_next = torch.cat(actions_next, dim=1).to(device)
+        
+        # next_states.view(batch_size, -1) => torch.Size([128, 48])
+        Q_targets_next = self.critic_target(next_states.view(batch_size, -1), 
+                                            actions_next)
+
         # Compute Q targets for current states
-        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
+        Q_targets = rewards[:, i] + (gamma * Q_targets_next * (1 - dones[:, i]))
         
         # Compute critic loss
-        Q_expected = self.critic_local(states, actions)
+        # states.view(batch_size, -1) => torch.Size([128, 48])
+        # actions.view(batch_size, -1) => torch.Size([128, 4])
+        Q_expected = self.critic_local(states.view(batch_size,), 
+                                       actions.view(batch_size,))
         
         critic_loss = F.mse_loss(Q_expected, Q_targets)
         
         # Minimize the loss
-        self.critic_optimizer.zero_grad()
+        self.critic_optim.zero_grad()
         critic_loss.backward()
-        self.critic_optimizer.step()
+        self.critic_optim.step()
         
         
         # ---------------------------- update actor ---------------------------- #
         # Compute actor loss
-        actions_pred = self.actor_local(states)
-        actor_loss = -self.critic_local(states, actions_pred).mean()
+        
+        # Collect the actions for all the agents in that state
+        actions_pred = [self.actor_local(states[:, j, :]) \
+                        for j in range(num_agents)]
+        
+        actions_pred = torch.cat(actions_pred, dim=1).to(device)
+        
+        actor_loss = -self.critic_local(states.view(batch_size, -1), 
+                                        actions_pred).mean()
         
         # Minimize the loss
-        self.actor_optimizer.zero_grad()
+        self.actor_optim.zero_grad()
         actor_loss.backward()
-        self.actor_optimizer.step()
+        self.actor_optim.step()
         
         
         # ----------------------- update target networks ----------------------- #
         soft_update(self.critic_local, self.critic_target, tau)
-        soft_update(self.actor_local, self.actor_target, tau)                     
+        soft_update(self.actor_local, self.actor_target, tau)        
+
+    def summary(self):
+        print('DDGPAgent:')
+        print('==========')
+        print(self.actor_local)             

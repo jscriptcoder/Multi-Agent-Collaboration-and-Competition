@@ -20,7 +20,7 @@ class OUNoise:
     def reset(self):
         self.state = np.ones(self.action_size) * self.mu
 
-    def noise(self):
+    def sample(self):
         x = self.state
         dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
         self.state = x + dx

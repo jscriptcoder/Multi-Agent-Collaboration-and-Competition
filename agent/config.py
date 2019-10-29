@@ -4,6 +4,8 @@ from torch.optim import RMSprop, Adam
 class Config:
     seed = 101
     num_agents = 2
+    env = None
+    env_solved = 0.5
     buffer_size = int(1e6)
     batch_size = 128
     num_episodes = 2000
