@@ -6,6 +6,7 @@ class Config:
     num_agents = 2
     env = None
     env_solved = 0.5
+    times_solved = 100
     buffer_size = int(1e6)
     batch_size = 128
     num_episodes = 2000
@@ -21,11 +22,11 @@ class Config:
     activ_critic = F.relu
     optim_actor = Adam
     optim_critic = Adam
-    weight_decay = 0.0001 # L2 decay
     update_every = 4
     ou_mu = 0.0
     ou_theta = 0.15
     ou_sigma = 0.2
     noise_weight = 1.0
     noise_decay = 0.99
+    log_every = 100
     
