@@ -2,7 +2,7 @@ import torch.nn.functional as F
 from torch.optim import RMSprop, Adam
 
 class Config:
-    seed = 101
+    seed = 0
     num_agents = 2
     env = None
     env_solved = 0.5
@@ -10,6 +10,8 @@ class Config:
     buffer_size = int(1e6)
     batch_size = 128
     num_episodes = 2000
+    num_updates = 2
+    max_steps = 2000
     state_size = None
     action_size = None
     gamma = 0.99

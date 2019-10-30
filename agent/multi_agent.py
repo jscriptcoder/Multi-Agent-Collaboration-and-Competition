@@ -10,7 +10,7 @@ from .ddpg_agent import DDPGAgent
 from .utils import get_time_elapsed, make_experience, soft_update
 from .device import device
 
-class Multi_Agent():
+class MultiAgent():
     def __init__(self, config):
         
         random.seed(config.seed)
@@ -44,6 +44,7 @@ class Multi_Agent():
         batch_size = self.config.batch_size
         update_every = self.config.update_every
         num_agents = self.config.num_agents
+        num_updates = self.config.num_updates
         
         experience = make_experience(states, 
                                      actions, 
@@ -59,9 +60,11 @@ class Multi_Agent():
     
             # Learn, if enough samples are available in memory
             if len(self.memory) > batch_size:
-                experiences = self.memory.sample()
-                for i in range(num_agents):
-                    self.learn(experiences, i)
+                
+                for update in range(num_updates):
+                    experiences = self.memory.sample()
+                    for i in range(num_agents):
+                        self.learn(experiences, i)
 
     def learn(self, experiences, agent_idx):
         """Update policy and value parameters using given batch of experience tuples.
@@ -140,9 +143,9 @@ class Multi_Agent():
             learning_agent.critic_local(states.view(batch_size, -1), 
                                         actions.view(batch_size, -1))
         
-#        critic_loss = F.mse_loss(Q_expected, Q_targets.detach())
-        huber_loss = torch.nn.SmoothL1Loss()
-        critic_loss = huber_loss(Q_expected, Q_targets)
+        critic_loss = F.mse_loss(Q_expected, Q_targets)
+#        huber_loss = torch.nn.SmoothL1Loss()
+#        critic_loss = huber_loss(Q_expected, Q_targets)
         
         # Minimize the loss
         learning_agent.critic_optim.zero_grad()
@@ -183,6 +186,7 @@ class Multi_Agent():
     def train(self):
         scores_window = deque(maxlen=self.config.times_solved)
         num_episodes = self.config.num_episodes
+        max_steps = self.config.max_steps
         num_agents = self.config.num_agents
         log_every = self.config.log_every
         env_solved = self.config.env_solved
@@ -196,9 +200,10 @@ class Multi_Agent():
         for i_episode in range(1, num_episodes+1):
             states = self.reset()
             score = np.zeros(num_agents)
-            while True:
+            
+            for step in range(max_steps):
                 actions = self.act(states)
-                next_states, rewards, dones, _ = env.step(actions)
+                next_states, rewards, dones, _ = env.step(actions.cpu().numpy())
                 
                 rewards = np.array(rewards)
                 dones = np.array(dones)
