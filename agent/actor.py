@@ -27,8 +27,6 @@ class Actor(nn.Module):
         self.layers[-1].weight.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, state):
-        if type(state) != torch.Tensor:
-            state = torch.FloatTensor(state).to(device)
         
         x = self.layers[0](state)
         

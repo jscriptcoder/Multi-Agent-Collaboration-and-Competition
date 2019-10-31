@@ -36,17 +36,15 @@ class DDPGAgent():
                                               lr=config.lr_actor)
 
         # Critic Network (w/ Target Network)
-        self.critic_local = Critic(config.state_size,
-                                   config.action_size,
+        self.critic_local = Critic(config.state_size * config.num_agents,
+                                   config.action_size * config.num_agents,
                                    config.hidden_critic, 
-                                   config.activ_critic, 
-                                   config.num_agents)
+                                   config.activ_critic)
         
-        self.critic_target = Critic(config.state_size, 
-                                    config.action_size,
+        self.critic_target = Critic(config.state_size * config.num_agents, 
+                                    config.action_size * config.num_agents,
                                     config.hidden_critic, 
-                                    config.activ_critic, 
-                                    config.num_agents)
+                                    config.activ_critic)
         
         soft_update(self.critic_local, self.critic_target, 1.0)
         
@@ -65,6 +63,8 @@ class DDPGAgent():
         """Returns actions for given state as per current policy."""
         
         noise_decay = self.config.noise_decay
+        linear_decay = self.config.linear_decay
+        noise_linear_decay = self.config.noise_linear_decay
         
         self.actor_local.eval()
         with torch.no_grad():
@@ -74,7 +74,12 @@ class DDPGAgent():
         if add_noise:
             action += self.noise.sample() * self.noise_weight
         
-        self.noise_weight = max(0.1, self.noise_weight * noise_decay)
+        if linear_decay:
+            self.noise_weight = max(0.1, 
+                                    self.noise_weight - noise_linear_decay)
+        else:
+            self.noise_weight = max(0.1, 
+                                    self.noise_weight * noise_decay)
         
         return np.clip(action, -1, 1)
 

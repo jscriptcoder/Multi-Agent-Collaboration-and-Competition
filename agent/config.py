@@ -24,11 +24,16 @@ class Config:
     activ_critic = F.relu
     optim_actor = Adam
     optim_critic = Adam
+    grad_clip_actor = None
+    grad_clip_critic = None
+    use_huber_loss = False
     update_every = 4
     ou_mu = 0.0
     ou_theta = 0.15
     ou_sigma = 0.2
     noise_weight = 1.0
     noise_decay = 0.99
+    linear_decay = False
+    noise_linear_decay = 1e-6
     log_every = 100
     

@@ -2,6 +2,7 @@ import time
 import random
 import torch
 import torch.nn.functional as F
+import torch.nn.utils import clip_grad_norm_
 import numpy as np
 from collections import deque
 
@@ -61,7 +62,8 @@ class MultiAgent():
             # Learn, if enough samples are available in memory
             if len(self.memory) > batch_size:
                 
-                for update in range(num_updates):
+                # Multiple updates in one learning process
+                for _ in range(num_updates):
                     experiences = self.memory.sample()
                     for i in range(num_agents):
                         self.learn(experiences, i)
@@ -77,31 +79,34 @@ class MultiAgent():
         ======
             experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples 
         """
+        grad_clip_actor = self.config.grad_clip_actor
+        grad_clip_critic = self.config.grad_clip_critic
         batch_size = self.config.batch_size
+        use_huber_loss = self.config.use_huber_loss
         gamma = self.config.gamma
         tau = self.config.tau
         
-        # torch.Size([batch_size, num_agents, state_size])
+        # tensor(batch_size, num_agents, state_size)
         states = torch.from_numpy(
                 np.array([e.state for e in experiences if e is not None]))\
                 .float().to(device)
         
-        # torch.Size([batch_size, num_agents, action_size])
+        # tensor(batch_size, num_agents, action_size)
         actions = torch.from_numpy(
                 np.array([e.action for e in experiences if e is not None]))\
                 .long().to(device)
         
-        # torch.Size([batch_size, num_agents])
+        # tensor(batch_size, num_agents)
         rewards = torch.from_numpy(
                 np.array([e.reward for e in experiences if e is not None]))\
                 .float().to(device)
         
-        # torch.Size([batch_size, num_agents, state_size])
+        # tensor(batch_size, num_agents, state_size)
         next_states = torch.from_numpy(
                 np.array([e.next_state for e in experiences if e is not None]))\
                 .float().to(device)
         
-        # torch.Size([batch_size, num_agents])
+        # tensor(batch_size, num_agents)
         dones = torch.from_numpy(
                 np.array([e.done for e in experiences if e is not None])\
                 .astype(np.uint8)).float().to(device) 
@@ -116,40 +121,47 @@ class MultiAgent():
         actions_next = [agent.actor_target(next_states[:, i, :]) \
                         for i, agent in enumerate(self.agents)]
         
-        # torch.Size([batch_size, 4])
+        # tensor(batch_size, 4)
         actions_next = torch.cat(actions_next, dim=1).to(device)
         
-        # next_states.view(batch_size, -1) => torch.Size([batch_size, 48])
-        # torch.Size([batch_size, 1])
+        # next_states.view(batch_size, -1) => tensor(batch_size, 48)
+        # tensor(batch_size, 1)
         Q_targets_next = \
             learning_agent.critic_target(next_states.view(batch_size, -1), 
                                          actions_next).detach()
         
-        # torch.Size([batch_size, 1])
+        # tensor(batch_size, 1)
         rewards = rewards[:, agent_idx].view(-1, 1)
         
-        # torch.Size([batch_size, 1])
+        # tensor(batch_size, 1)
         dones = dones[:, agent_idx].view(-1, 1)
 
         # Compute Q targets for current states
-        # torch.Size([batch_size, 1])
+        # tensor(batch_size, 1)
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
         
         # Compute critic loss
-        # states.view(batch_size, -1) => torch.Size([batch_size, 48])
-        # actions.view(batch_size, -1) => torch.Size([batch_size, 4])
-        # torch.Size([batch_size 1])
+        # states.view(batch_size, -1) => tensor(batch_size, 48)
+        # actions.view(batch_size, -1) => tensorbatch_size, 4)
+        # tensor(batch_size 1)
         Q_expected = \
             learning_agent.critic_local(states.view(batch_size, -1), 
                                         actions.view(batch_size, -1))
         
-        critic_loss = F.mse_loss(Q_expected, Q_targets)
-#        huber_loss = torch.nn.SmoothL1Loss()
-#        critic_loss = huber_loss(Q_expected, Q_targets)
+        
+        if use_huber_loss:
+            critic_loss = F.smooth_l1_loss(Q_expected, Q_targets) # Huber loss
+        else:
+            critic_loss = F.mse_loss(Q_expected, Q_targets)
         
         # Minimize the loss
         learning_agent.critic_optim.zero_grad()
         critic_loss.backward()
+        
+        if grad_clip_critic is not None:
+            clip_grad_norm_(learning_agent.critic_local.parameters(), 
+                            grad_clip_critic)
+            
         learning_agent.critic_optim.step()
         
         
@@ -171,6 +183,11 @@ class MultiAgent():
         # Minimize the loss
         learning_agent.actor_optim.zero_grad()
         actor_loss.backward()
+        
+        if grad_clip_actor is not None:
+            clip_grad_norm_(learning_agent.actor_local.parameters(), 
+                            grad_clip_actor)
+            
         learning_agent.actor_optim.step()
         
         
@@ -201,9 +218,9 @@ class MultiAgent():
             states = self.reset()
             score = np.zeros(num_agents)
             
-            for step in range(max_steps):
+            for _ in range(max_steps):
                 actions = self.act(states)
-                next_states, rewards, dones, _ = env.step(actions.cpu().numpy())
+                next_states, rewards, dones, _ = env.step(actions)
                 
                 rewards = np.array(rewards)
                 dones = np.array(dones)
@@ -225,12 +242,11 @@ class MultiAgent():
                   .format(i_episode, avg_score), end='')
             
             if i_episode % log_every == 0:
-                print('\rEpisode {}\tAvg score: {:.3f}'\
-                  .format(i_episode, avg_score))
+                print('\rEpisode {}\tAvg score: {:.3f}\tBest score: {:.3f}'\
+                  .format(i_episode, avg_score, best_score))
             
             if avg_score > best_score:
                 best_score = avg_score
-#                print('\nBest avg score so far: {:.3f}'.format(best_score))
                 
                 for i, agent in enumerate(self.agents):
                     torch.save(agent.actor_local.state_dict(), 'ddpg_actor{}_checkpoint.ph'.format(i))
@@ -238,7 +254,7 @@ class MultiAgent():
             if avg_score >= env_solved:
                 time_elapsed = get_time_elapsed(start)
                 
-                print('Environment solved!')
+                print('\nEnvironment solved!')
                 print('Avg score: {:.3f}'.format(avg_score))
                 print('Time elapsed: {}'.format(time_elapsed))
                 break;
