@@ -27,6 +27,11 @@ class Critic(nn.Module):
         self.layers[-1].weight.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, state, action):
+        if type(state) != torch.Tensor:
+            state = torch.FloatTensor(state).to(device)
+        
+        if type(action) != torch.Tensor:
+            state = torch.FloatTensor(action).to(device)
         
         x = torch.cat((state, action.float()), dim=1)
         

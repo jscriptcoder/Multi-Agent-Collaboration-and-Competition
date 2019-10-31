@@ -2,8 +2,8 @@ import time
 import random
 import torch
 import torch.nn.functional as F
-import torch.nn.utils import clip_grad_norm_
 import numpy as np
+from torch.nn.utils import clip_grad_norm_
 from collections import deque
 
 from .replay_buffer import ReplayBuffer
@@ -211,9 +211,9 @@ class MultiAgent():
         
         start = time.time()
         
-        scores = []
         best_score = -np.inf
-        
+        scores = []
+
         for i_episode in range(1, num_episodes+1):
             states = self.reset()
             score = np.zeros(num_agents)
@@ -242,8 +242,8 @@ class MultiAgent():
                   .format(i_episode, avg_score), end='')
             
             if i_episode % log_every == 0:
-                print('\rEpisode {}\tAvg score: {:.3f}\tBest score: {:.3f}'\
-                  .format(i_episode, avg_score, best_score))
+                print('\rEpisode {}\tAvg score: {:.3f}'\
+                  .format(i_episode, avg_score))
             
             if avg_score > best_score:
                 best_score = avg_score
@@ -256,6 +256,7 @@ class MultiAgent():
                 
                 print('\nEnvironment solved!')
                 print('Avg score: {:.3f}'.format(avg_score))
+                print('Best score: {:.3f}'.format(best_score))
                 print('Time elapsed: {}'.format(time_elapsed))
                 break;
                     
