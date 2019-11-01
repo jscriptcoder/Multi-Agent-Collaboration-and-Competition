@@ -1,13 +1,13 @@
 import numpy as np
-import torch
 
 from .actor import Actor
 from .critic import Critic
 from .ou_noise import OUNoise
-from .utils import soft_update
 
 class DDPGAgent():
     """Interacts with and learns from the environment."""
+    
+    name = 'DDPG'
     
     def __init__(self, config):
         """Initialize an Agent object.
@@ -30,7 +30,7 @@ class DDPGAgent():
                                   config.hidden_actor, 
                                   config.activ_actor)
         
-        soft_update(self.actor_local, self.actor_target, 1.0)
+        self.soft_update(self.actor_local, self.actor_target, 1.0)
         
         self.actor_optim = config.optim_actor(self.actor_local.parameters(), 
                                               lr=config.lr_actor)
@@ -46,12 +46,14 @@ class DDPGAgent():
                                     config.hidden_critic, 
                                     config.activ_critic)
         
-        soft_update(self.critic_local, self.critic_target, 1.0)
+        self.soft_update(self.critic_local, self.critic_target, 1.0)
         
         self.critic_optim = config.optim_critic(self.critic_local.parameters(), 
                                                 lr=config.lr_critic)
 
         # Noise process
+        # TODO: how about trying simple gaussian noise?:
+        #       np.random.normal(0, expl_noise, size=action_size)
         self.noise = OUNoise(config.action_size, 
                              config.ou_mu, 
                              config.ou_theta, 
@@ -63,31 +65,51 @@ class DDPGAgent():
         """Returns actions for given state as per current policy."""
         
         noise_decay = self.config.noise_decay
-        linear_decay = self.config.linear_decay
+        use_linear_decay = self.config.use_linear_decay
         noise_linear_decay = self.config.noise_linear_decay
         
-        self.actor_local.eval()
-        with torch.no_grad():
-            action = self.actor_local(state).cpu().data.numpy()
-        self.actor_local.train()
+        action = self.actor_local(state).cpu().data.numpy()
         
         if add_noise:
             action += self.noise.sample() * self.noise_weight
-        
-        if decay_noise:
-            if linear_decay:
-                self.noise_weight = max(0.1, 
-                                        self.noise_weight - noise_linear_decay)
-            else:
-                self.noise_weight = max(0.1, 
-                                        self.noise_weight * noise_decay)
+            
+            if decay_noise:
+                if use_linear_decay:
+                    self.noise_weight = max(0.1, 
+                                            self.noise_weight - noise_linear_decay)
+                else:
+                    self.noise_weight = max(0.1, 
+                                            self.noise_weight * noise_decay)
         
         return np.clip(action, -1, 1)
 
     def reset(self):
-        self.noise.reset()       
+        if not self.config.noisy_net:
+            self.noise.reset()
+    
+    def soft_update(self, local_model, target_model, tau):
+        """Soft update model parameters.
+        θ_target = τ*θ_local + (1 - τ)*θ_target
+        
+        Params
+        ======
+            local_model: PyTorch model (weights will be copied from)
+            target_model: PyTorch model (weights will be copied to)
+            tau (float): interpolation parameter 
+        """
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
 
-    def summary(self):
-        print('DDGPAgent:')
+    def summary(self, agent_name='DDGP Agent'):
+        print('{}:'.format(agent_name))
         print('==========')
-        print(self.actor_local)             
+        print('')
+        print('Actor Network:')
+        print('--------------')
+        print(self.actor_local)  
+        print('')
+        print('Critic Network:')
+        print('---------------')
+        print(self.critic_local)
+        
+           

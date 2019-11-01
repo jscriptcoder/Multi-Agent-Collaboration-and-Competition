@@ -7,13 +7,11 @@ from torch.nn.utils import clip_grad_norm_
 from collections import deque
 
 from .replay_buffer import ReplayBuffer
-from .ddpg_agent import DDPGAgent
-from .utils import get_time_elapsed, soft_update
-from .utils import make_experience, from_experience
+from .utils import get_time_elapsed, make_experience, from_experience
 from .device import device
 
 class MultiAgent():
-    def __init__(self, config):
+    def __init__(self, Agent, config):
         
         random.seed(config.seed)
         np.random.seed(config.seed)
@@ -23,13 +21,14 @@ class MultiAgent():
 
         self.memory = ReplayBuffer(config.buffer_size, config.batch_size)
         
-        self.agents = [DDPGAgent(config) \
+        self.agents = [Agent(config) \
                        for _ in range(config.num_agents)]
         
-        # Initialize time step (for updating every update_every steps)
         self.t_step = 0
-        
+        self.p_update = 0
         self.solved = False
+        self.use_twin = hasattr(self.agents[0],'critic_local2')
+        
     
     def reset(self):
         for agent in self.agents:
@@ -38,7 +37,7 @@ class MultiAgent():
         return self.config.env.reset()
     
     def act(self, states):
-        return np.array([agent.act(state, decay_noise=self.solved) \
+        return np.array([agent.act(state) \
                          for agent, state \
                          in zip(self.agents, states)])
     
@@ -82,6 +81,9 @@ class MultiAgent():
         ======
             experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples 
         """
+        policy_freq_update = self.config.policy_freq_update
+        policy_noise = self.config.policy_noise
+        noise_clip = self.config.noise_clip
         grad_clip_actor = self.config.grad_clip_actor
         grad_clip_critic = self.config.grad_clip_critic
         batch_size = self.config.batch_size
@@ -101,9 +103,19 @@ class MultiAgent():
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
         
-        # Collect the actions for all the agents in the next state
-        actions_next = [agent.actor_target(next_states[:, i, :]) \
-                        for i, agent in enumerate(self.agents)]
+        # Target Policy Smoothing Regularization: add a small amount of clipped 
+        # random noises to the selected action
+        if self.use_twin and policy_noise > 0.0:
+            noise = torch.empty_like(actions).data.normal_(0, policy_noise).to(device)
+            noise = noise.clamp(-noise_clip, noise_clip)
+            
+            actions_next = [(agent.actor_target(next_states[:, i, :]) + \
+                             noise[:, i, :]).clamp(-1., 1.) \
+                            for i, agent in enumerate(self.agents)]
+        else:
+            # Collect the actions for all the agents in the next state
+            actions_next = [agent.actor_target(next_states[:, i, :]) \
+                            for i, agent in enumerate(self.agents)]
         
         # tensor(batch_size, 4)
         actions_next = torch.cat(actions_next, dim=1).to(device)
@@ -113,6 +125,13 @@ class MultiAgent():
         Q_targets_next = \
             learning_agent.critic_target(next_states.view(batch_size, -1), 
                                          actions_next).detach()
+        
+        if self.use_twin:
+            Q_targets_next2 = \
+                learning_agent.critic_target2(next_states.view(batch_size, -1), 
+                                              actions_next).detach()
+            
+            Q_targets_next = torch.min(Q_targets_next, Q_targets_next2)
         
         # tensor(batch_size, 1)
         rewards = rewards[:, agent_idx].view(-1, 1)
@@ -124,7 +143,6 @@ class MultiAgent():
         # tensor(batch_size, 1)
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
         
-        # Compute critic loss
         # states.view(batch_size, -1) => tensor(batch_size, 48)
         # actions.view(batch_size, -1) => tensorbatch_size, 4)
         # tensor(batch_size 1)
@@ -132,9 +150,9 @@ class MultiAgent():
             learning_agent.critic_local(states.view(batch_size, -1), 
                                         actions.view(batch_size, -1))
         
-        
+        # Compute critic loss
         if use_huber_loss:
-            critic_loss = F.smooth_l1_loss(Q_expected, Q_targets) # Huber loss
+            critic_loss = F.smooth_l1_loss(Q_expected, Q_targets)
         else:
             critic_loss = F.mse_loss(Q_expected, Q_targets)
         
@@ -148,40 +166,63 @@ class MultiAgent():
             
         learning_agent.critic_optim.step()
         
-        
-        # ---------------------------- update actor ---------------------------- #
-        # Compute actor loss
-        
-        # Collect the actions for all the agents in that state
-        actions_pred = [agent.actor_local(states[:, i, :]) \
-                        if i == agent_idx \
-                        else agent.actor_local(states[:, i, :]).detach() \
-                        for i, agent in enumerate(self.agents)]
-        
-        actions_pred = torch.cat(actions_pred, dim=1).to(device)
-        
-        actor_loss = \
-            -learning_agent.critic_local(states.view(batch_size, -1), 
-                                         actions_pred).mean()
-        
-        # Minimize the loss
-        learning_agent.actor_optim.zero_grad()
-        actor_loss.backward()
-        
-        if grad_clip_actor is not None:
-            clip_grad_norm_(learning_agent.actor_local.parameters(), 
-                            grad_clip_actor)
+        # Compute critic loss 2nd Critic network
+        if self.use_twin:
+            Q_expected2 = \
+                learning_agent.critic_local2(states.view(batch_size, -1), 
+                                             actions.view(batch_size, -1))
             
-        learning_agent.actor_optim.step()
+            if use_huber_loss:
+                critic_loss2 = F.smooth_l1_loss(Q_expected2, Q_targets)
+            else:
+                critic_loss2 = F.mse_loss(Q_expected2, Q_targets)
+            
+            # Minimize the loss
+            learning_agent.critic_optim2.zero_grad()
+            critic_loss2.backward()
+            
+            if grad_clip_critic is not None:
+                clip_grad_norm_(learning_agent.critic_local2.parameters(), 
+                                grad_clip_critic)
+                
+            learning_agent.critic_optim2.step()
         
+        self.p_update = (self.p_update + 1) % policy_freq_update
         
-        # ----------------------- update target networks ----------------------- #
-        soft_update(learning_agent.critic_local, learning_agent.critic_target, tau)
-        soft_update(learning_agent.actor_local, learning_agent.actor_target, tau) 
+        if self.p_update == 0:
+            # ---------------------------- update actor ---------------------------- #
+            # Compute actor loss
+            
+            # Collect the actions for all the agents in that state
+            actions_pred = [agent.actor_local(states[:, i, :]) \
+                            if i == agent_idx \
+                            else agent.actor_local(states[:, i, :]).detach() \
+                            for i, agent in enumerate(self.agents)]
+            
+            actions_pred = torch.cat(actions_pred, dim=1).to(device)
+            
+            actor_loss = \
+                -learning_agent.critic_local(states.view(batch_size, -1), 
+                                             actions_pred).mean()
+            
+            # Minimize the loss
+            learning_agent.actor_optim.zero_grad()
+            actor_loss.backward()
+            
+            if grad_clip_actor is not None:
+                clip_grad_norm_(learning_agent.actor_local.parameters(), 
+                                grad_clip_actor)
+                
+            learning_agent.actor_optim.step()
+            
+            # ----------------------- update target networks ----------------------- #
+            learning_agent.soft_update(learning_agent.critic_local, learning_agent.critic_target, tau)
+            learning_agent.soft_update(learning_agent.critic_local2, learning_agent.critic_target2, tau)
+            learning_agent.soft_update(learning_agent.actor_local, learning_agent.actor_target, tau) 
 
     def summary(self):
-        for agent in self.agents:
-            agent.summary()
+        for i, agent in enumerate(self.agents):
+            agent.summary('{} Agent {}'.format(agent.name, i))
             print('')
     
     def train(self):

@@ -1,5 +1,5 @@
 import torch.nn.functional as F
-from torch.optim import RMSprop, Adam
+from torch.optim import Adam
 
 class Config:
     seed = 0
@@ -28,13 +28,19 @@ class Config:
     grad_clip_critic = None
     use_huber_loss = False
     update_every = 4
+    use_ou_noise = True
     ou_mu = 0.0
     ou_theta = 0.15
     ou_sigma = 0.2
+    expl_noise = 0.1
     noise_weight = 1.0
     noise_decay = 0.99
-    linear_decay = False
+    use_linear_decay = False
     noise_linear_decay = 1e-6
     log_every = 100
     end_on_solved = False
+    policy_noise = 0.2
+    noise_clip = 0.5
+    policy_freq_update = 2
+    
     
