@@ -59,7 +59,7 @@ class DDPGAgent():
         
         self.noise_weight = config.noise_weight
     
-    def act(self, state, add_noise=True):
+    def act(self, state, add_noise=True, decay_noise=False):
         """Returns actions for given state as per current policy."""
         
         noise_decay = self.config.noise_decay
@@ -74,12 +74,13 @@ class DDPGAgent():
         if add_noise:
             action += self.noise.sample() * self.noise_weight
         
-        if linear_decay:
-            self.noise_weight = max(0.1, 
-                                    self.noise_weight - noise_linear_decay)
-        else:
-            self.noise_weight = max(0.1, 
-                                    self.noise_weight * noise_decay)
+        if decay_noise:
+            if linear_decay:
+                self.noise_weight = max(0.1, 
+                                        self.noise_weight - noise_linear_decay)
+            else:
+                self.noise_weight = max(0.1, 
+                                        self.noise_weight * noise_decay)
         
         return np.clip(action, -1, 1)
 

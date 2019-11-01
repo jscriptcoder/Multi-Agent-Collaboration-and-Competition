@@ -2,9 +2,10 @@ import gym
 import time
 import datetime
 import numpy as np
-import torch.nn as nn
+import torch
 import matplotlib.pyplot as plt
-from collections import namedtuple, deque
+from collections import namedtuple
+from .device import device
 
 gym.logger.set_level(40)
 
@@ -33,7 +34,34 @@ make_experience = namedtuple('Experience',
                                           'reward', 
                                           'next_state', 
                                           'done'])
+
+def from_experience(experiences):
+    # tensor(batch_size, num_agents, state_size)
+    states = torch.from_numpy(
+            np.array([e.state for e in experiences if e is not None]))\
+            .float().to(device)
     
+    # tensor(batch_size, num_agents, action_size)
+    actions = torch.from_numpy(
+            np.array([e.action for e in experiences if e is not None]))\
+            .float().to(device)
+    
+    # tensor(batch_size, num_agents)
+    rewards = torch.from_numpy(
+            np.array([e.reward for e in experiences if e is not None]))\
+            .float().to(device)
+    
+    # tensor(batch_size, num_agents, state_size)
+    next_states = torch.from_numpy(
+            np.array([e.next_state for e in experiences if e is not None]))\
+            .float().to(device)
+    
+    # tensor(batch_size, num_agents)
+    dones = torch.from_numpy(
+            np.array([e.done for e in experiences if e is not None])\
+            .astype(np.uint8)).float().to(device)
+    
+    return states, actions, rewards, next_states, dones
 
 def run_env(env, get_action=None, max_t=1000, close_env=True):
     """Run actions against an environment.

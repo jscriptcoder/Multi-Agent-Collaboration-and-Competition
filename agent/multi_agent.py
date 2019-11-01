@@ -8,7 +8,8 @@ from collections import deque
 
 from .replay_buffer import ReplayBuffer
 from .ddpg_agent import DDPGAgent
-from .utils import get_time_elapsed, make_experience, soft_update
+from .utils import get_time_elapsed, soft_update
+from .utils import make_experience, from_experience
 from .device import device
 
 class MultiAgent():
@@ -27,6 +28,8 @@ class MultiAgent():
         
         # Initialize time step (for updating every update_every steps)
         self.t_step = 0
+        
+        self.solved = False
     
     def reset(self):
         for agent in self.agents:
@@ -34,8 +37,8 @@ class MultiAgent():
         
         return self.config.env.reset()
     
-    def act(self, states, add_noise=True):
-        return np.array([agent.act(state, add_noise) \
+    def act(self, states):
+        return np.array([agent.act(state, decay_noise=self.solved) \
                          for agent, state \
                          in zip(self.agents, states)])
     
@@ -86,30 +89,11 @@ class MultiAgent():
         gamma = self.config.gamma
         tau = self.config.tau
         
-        # tensor(batch_size, num_agents, state_size)
-        states = torch.from_numpy(
-                np.array([e.state for e in experiences if e is not None]))\
-                .float().to(device)
-        
-        # tensor(batch_size, num_agents, action_size)
-        actions = torch.from_numpy(
-                np.array([e.action for e in experiences if e is not None]))\
-                .long().to(device)
-        
-        # tensor(batch_size, num_agents)
-        rewards = torch.from_numpy(
-                np.array([e.reward for e in experiences if e is not None]))\
-                .float().to(device)
-        
-        # tensor(batch_size, num_agents, state_size)
-        next_states = torch.from_numpy(
-                np.array([e.next_state for e in experiences if e is not None]))\
-                .float().to(device)
-        
-        # tensor(batch_size, num_agents)
-        dones = torch.from_numpy(
-                np.array([e.done for e in experiences if e is not None])\
-                .astype(np.uint8)).float().to(device) 
+        (states, 
+         actions, 
+         rewards, 
+         next_states, 
+         dones) = from_experience(experiences)
         
         # Current agent learning
         learning_agent = self.agents[agent_idx]
@@ -201,16 +185,20 @@ class MultiAgent():
             print('')
     
     def train(self):
-        scores_window = deque(maxlen=self.config.times_solved)
         num_episodes = self.config.num_episodes
         max_steps = self.config.max_steps
         num_agents = self.config.num_agents
         log_every = self.config.log_every
         env_solved = self.config.env_solved
+        times_solved = self.config.times_solved
+        end_on_solved = self.config.end_on_solved
         env = self.config.env
+        
+        self.solved = False
         
         start = time.time()
         
+        scores_window = deque(maxlen=times_solved)
         best_score = -np.inf
         scores = []
 
@@ -251,14 +239,19 @@ class MultiAgent():
                 for i, agent in enumerate(self.agents):
                     torch.save(agent.actor_local.state_dict(), 'ddpg_actor{}_checkpoint.ph'.format(i))
                 
-            if avg_score >= env_solved:
+            if avg_score >= env_solved and not self.solved:
                 time_elapsed = get_time_elapsed(start)
+                self.solved = True
                 
-                print('\nEnvironment solved!')
+                print('\n===================')
+                print('Environment solved!')
                 print('Avg score: {:.3f}'.format(avg_score))
                 print('Best score: {:.3f}'.format(best_score))
                 print('Time elapsed: {}'.format(time_elapsed))
-                break;
+                print('===================')
+                
+                if end_on_solved:
+                    break
                     
         env.close()
         

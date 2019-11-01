@@ -36,4 +36,5 @@ class Config:
     linear_decay = False
     noise_linear_decay = 1e-6
     log_every = 100
+    end_on_solved = False
     
