@@ -34,13 +34,13 @@ class Config:
     ou_sigma = 0.2
     expl_noise = 0.1
     noise_weight = 1.0
-    noise_decay = 0.99
+    decay_noise = False
     use_linear_decay = False
     noise_linear_decay = 1e-6
+    noise_decay = 0.99
     log_every = 100
-    end_on_solved = False
     policy_noise = 0.2
     noise_clip = 0.5
-    policy_freq_update = 2
+    policy_freq_update = 2 
     
     

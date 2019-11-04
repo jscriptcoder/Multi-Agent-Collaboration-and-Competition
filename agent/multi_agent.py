@@ -7,7 +7,8 @@ from torch.nn.utils import clip_grad_norm_
 from collections import deque
 
 from .replay_buffer import ReplayBuffer
-from .utils import get_time_elapsed, make_experience, from_experience
+from .utils import make_experience, from_experience
+from .utils import soft_update, get_time_elapsed
 from .device import device
 
 class MultiAgent():
@@ -21,13 +22,11 @@ class MultiAgent():
 
         self.memory = ReplayBuffer(config.buffer_size, config.batch_size)
         
-        self.agents = [Agent(config) \
-                       for _ in range(config.num_agents)]
+        self.agents = [Agent(config) for _ in range(config.num_agents)]
         
         self.t_step = 0
         self.p_update = 0
-        self.solved = False
-        self.use_twin = hasattr(self.agents[0],'critic_local2')
+        self.use_twin = hasattr(self.agents[0],'twin_local')
         
     
     def reset(self):
@@ -36,8 +35,8 @@ class MultiAgent():
         
         return self.config.env.reset()
     
-    def act(self, states):
-        return np.array([agent.act(state) \
+    def act(self, states, add_noise=True):
+        return np.array([agent.act(state, add_noise=add_noise) \
                          for agent, state \
                          in zip(self.agents, states)])
     
@@ -64,7 +63,7 @@ class MultiAgent():
             # Learn, if enough samples are available in memory
             if len(self.memory) > batch_size:
                 
-                # Multiple updates in one learning process
+                # Multiple updates in one learning step
                 for _ in range(num_updates):
                     experiences = self.memory.sample()
                     for i in range(num_agents):
@@ -128,8 +127,8 @@ class MultiAgent():
         
         if self.use_twin:
             Q_targets_next2 = \
-                learning_agent.critic_target2(next_states.view(batch_size, -1), 
-                                              actions_next).detach()
+                learning_agent.twin_target(next_states.view(batch_size, -1), 
+                                           actions_next).detach()
             
             Q_targets_next = torch.min(Q_targets_next, Q_targets_next2)
         
@@ -150,6 +149,7 @@ class MultiAgent():
             learning_agent.critic_local(states.view(batch_size, -1), 
                                         actions.view(batch_size, -1))
         
+        
         # Compute critic loss
         if use_huber_loss:
             critic_loss = F.smooth_l1_loss(Q_expected, Q_targets)
@@ -166,26 +166,26 @@ class MultiAgent():
             
         learning_agent.critic_optim.step()
         
-        # Compute critic loss 2nd Critic network
+        # Compute critic loss twin Critic network
         if self.use_twin:
             Q_expected2 = \
-                learning_agent.critic_local2(states.view(batch_size, -1), 
-                                             actions.view(batch_size, -1))
+                learning_agent.twin_local(states.view(batch_size, -1), 
+                                          actions.view(batch_size, -1))
             
             if use_huber_loss:
-                critic_loss2 = F.smooth_l1_loss(Q_expected2, Q_targets)
+                twin_loss = F.smooth_l1_loss(Q_expected2, Q_targets)
             else:
-                critic_loss2 = F.mse_loss(Q_expected2, Q_targets)
+                twin_loss = F.mse_loss(Q_expected2, Q_targets)
             
             # Minimize the loss
-            learning_agent.critic_optim2.zero_grad()
-            critic_loss2.backward()
+            learning_agent.twin_optim.zero_grad()
+            twin_loss.backward()
             
             if grad_clip_critic is not None:
-                clip_grad_norm_(learning_agent.critic_local2.parameters(), 
+                clip_grad_norm_(learning_agent.twin_local.parameters(), 
                                 grad_clip_critic)
                 
-            learning_agent.critic_optim2.step()
+            learning_agent.twin_optim.step()
         
         self.p_update = (self.p_update + 1) % policy_freq_update
         
@@ -216,9 +216,18 @@ class MultiAgent():
             learning_agent.actor_optim.step()
             
             # ----------------------- update target networks ----------------------- #
-            learning_agent.soft_update(learning_agent.critic_local, learning_agent.critic_target, tau)
-            learning_agent.soft_update(learning_agent.critic_local2, learning_agent.critic_target2, tau)
-            learning_agent.soft_update(learning_agent.actor_local, learning_agent.actor_target, tau) 
+            soft_update(learning_agent.critic_local, 
+                        learning_agent.critic_target, 
+                        tau)
+            
+            if self.use_twin:
+                soft_update(learning_agent.twin_local, 
+                            learning_agent.twin_target, 
+                            tau)
+            
+            soft_update(learning_agent.actor_local, 
+                        learning_agent.actor_target, 
+                        tau) 
 
     def summary(self):
         for i, agent in enumerate(self.agents):
@@ -232,10 +241,7 @@ class MultiAgent():
         log_every = self.config.log_every
         env_solved = self.config.env_solved
         times_solved = self.config.times_solved
-        end_on_solved = self.config.end_on_solved
         env = self.config.env
-        
-        self.solved = False
         
         start = time.time()
         
@@ -267,11 +273,11 @@ class MultiAgent():
             scores_window.append(max_score)
             avg_score = np.mean(scores_window)
             
-            print('\rEpisode {}\tAvg score: {:.3f}'\
+            print('\rEpisode {}\tAvg Score: {:.3f}'\
                   .format(i_episode, avg_score), end='')
             
             if i_episode % log_every == 0:
-                print('\rEpisode {}\tAvg score: {:.3f}'\
+                print('\rEpisode {}\tAvg Score: {:.3f}'\
                   .format(i_episode, avg_score))
             
             if avg_score > best_score:
@@ -280,20 +286,45 @@ class MultiAgent():
                 for i, agent in enumerate(self.agents):
                     torch.save(agent.actor_local.state_dict(), 'ddpg_actor{}_checkpoint.ph'.format(i))
                 
-            if avg_score >= env_solved and not self.solved:
-                time_elapsed = get_time_elapsed(start)
-                self.solved = True
-                
-                print('\n===================')
-                print('Environment solved!')
-                print('Avg score: {:.3f}'.format(avg_score))
-                print('Best score: {:.3f}'.format(best_score))
-                print('Time elapsed: {}'.format(time_elapsed))
-                print('===================')
-                
-                if end_on_solved:
-                    break
+            if avg_score >= env_solved:
+                print('\nRunning evaluation without noise...')
+
+                avg_score = self.eval_episode()
+
+                if avg_score >= env_solved:
+                    time_elapsed = get_time_elapsed(start)
+
+                    print('Environment solved {} times consecutively!'.format(times_solved))
+                    print('Avg score: {:.3f}'.format(avg_score))
+                    print('Time elapsed: {}'.format(time_elapsed))
+                    break;
+                else:
+                    print('No success. Avg score: {:.3f}'.format(avg_score))
                     
         env.close()
         
         return scores
+    
+    def eval_episode(self):
+        """Evaluation method. 
+        Will run times_solved times and avarage the total reward obtained
+        """
+        
+        num_agents = self.config.num_agents
+        times_solved = self.config.times_solved
+        env = self.config.env
+        
+        total_reward = np.zeros(num_agents)
+        
+        for _ in range(times_solved):
+            states = env.reset()
+            while True:
+                actions = self.act(states, add_noise=False)
+                states, rewards, dones, _ = env.step(actions)
+
+                total_reward += rewards
+    
+                if np.any(dones):
+                    break
+                
+        return np.max(total_reward) / times_solved

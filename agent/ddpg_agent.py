@@ -1,8 +1,10 @@
 import numpy as np
+import torch
 
 from .actor import Actor
 from .critic import Critic
-from .ou_noise import OUNoise
+from .noise import OUNoise, GaussianNoise
+from .utils import soft_update
 
 class DDPGAgent():
     """Interacts with and learns from the environment."""
@@ -30,7 +32,7 @@ class DDPGAgent():
                                   config.hidden_actor, 
                                   config.activ_actor)
         
-        self.soft_update(self.actor_local, self.actor_target, 1.0)
+        soft_update(self.actor_local, self.actor_target, 1.0)
         
         self.actor_optim = config.optim_actor(self.actor_local.parameters(), 
                                               lr=config.lr_actor)
@@ -46,29 +48,34 @@ class DDPGAgent():
                                     config.hidden_critic, 
                                     config.activ_critic)
         
-        self.soft_update(self.critic_local, self.critic_target, 1.0)
+        soft_update(self.critic_local, self.critic_target, 1.0)
         
         self.critic_optim = config.optim_critic(self.critic_local.parameters(), 
                                                 lr=config.lr_critic)
 
         # Noise process
-        # TODO: how about trying simple gaussian noise?:
-        #       np.random.normal(0, expl_noise, size=action_size)
-        self.noise = OUNoise(config.action_size, 
-                             config.ou_mu, 
-                             config.ou_theta, 
-                             config.ou_sigma)
+        if config.use_ou_noise:
+            self.noise = OUNoise(config.action_size, 
+                                 config.ou_mu, 
+                                 config.ou_theta, 
+                                 config.ou_sigma)
+        else:
+            self.noise = GaussianNoise(config.action_size, config.expl_noise)
         
         self.noise_weight = config.noise_weight
     
-    def act(self, state, add_noise=True, decay_noise=False):
+    def act(self, state, add_noise=True):
         """Returns actions for given state as per current policy."""
         
-        noise_decay = self.config.noise_decay
+        decay_noise = self.config.decay_noise
         use_linear_decay = self.config.use_linear_decay
         noise_linear_decay = self.config.noise_linear_decay
+        noise_decay = self.config.noise_decay
         
-        action = self.actor_local(state).cpu().data.numpy()
+        self.actor_local.eval()
+        with torch.no_grad():
+            action = self.actor_local(state).cpu().data.numpy()
+        self.actor_local.train()
         
         if add_noise:
             action += self.noise.sample() * self.noise_weight
@@ -84,21 +91,7 @@ class DDPGAgent():
         return np.clip(action, -1, 1)
 
     def reset(self):
-        if not self.config.noisy_net:
-            self.noise.reset()
-    
-    def soft_update(self, local_model, target_model, tau):
-        """Soft update model parameters.
-        θ_target = τ*θ_local + (1 - τ)*θ_target
-        
-        Params
-        ======
-            local_model: PyTorch model (weights will be copied from)
-            target_model: PyTorch model (weights will be copied to)
-            tau (float): interpolation parameter 
-        """
-        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
-            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
+        self.noise.reset()
 
     def summary(self, agent_name='DDGP Agent'):
         print('{}:'.format(agent_name))

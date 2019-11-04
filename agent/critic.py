@@ -31,7 +31,7 @@ class Critic(nn.Module):
             state = torch.FloatTensor(state).to(device)
         
         if type(action) != torch.Tensor:
-            state = torch.FloatTensor(action).to(device)
+            action = torch.FloatTensor(action).to(device)
         
         x = torch.cat((state, action), dim=1)
         
