@@ -88,7 +88,7 @@ class DDPGAgent():
                     self.noise_weight = max(0.1, 
                                             self.noise_weight * noise_decay)
         
-        return np.clip(action, -1, 1)
+        return np.clip(action, -1., 1.)
 
     def reset(self):
         self.noise.reset()

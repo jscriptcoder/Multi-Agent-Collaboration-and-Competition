@@ -26,7 +26,7 @@ class MultiAgent():
         
         self.t_step = 0
         self.p_update = 0
-        self.use_twin = hasattr(self.agents[0],'twin_local')
+        self.use_twin = hasattr(self.agents[0], 'twin_local')
         
     
     def reset(self):
@@ -89,6 +89,7 @@ class MultiAgent():
         use_huber_loss = self.config.use_huber_loss
         gamma = self.config.gamma
         tau = self.config.tau
+        use_twin = self.use_twin
         
         (states, 
          actions, 
@@ -102,35 +103,33 @@ class MultiAgent():
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
         
-        # Target Policy Smoothing Regularization: add a small amount of clipped 
-        # random noises to the selected action
-        if self.use_twin and policy_noise > 0.0:
-            noise = torch.empty_like(actions).data.normal_(0, policy_noise).to(device)
-            noise = noise.clamp(-noise_clip, noise_clip)
-            
-            actions_next = [(agent.actor_target(next_states[:, i, :]) + \
-                             noise[:, i, :]).clamp(-1., 1.) \
-                            for i, agent in enumerate(self.agents)]
-        else:
-            # Collect the actions for all the agents in the next state
-            actions_next = [agent.actor_target(next_states[:, i, :]) \
-                            for i, agent in enumerate(self.agents)]
+        # Collect the actions for all the agents in the next state
+        next_actions = [agent.actor_target(next_states[:, i, :]) \
+                        for i, agent in enumerate(self.agents)]
         
         # tensor(batch_size, 4)
-        actions_next = torch.cat(actions_next, dim=1).to(device)
+        next_actions = torch.cat(next_actions, dim=1).to(device)
+        
+        # Target Policy Smoothing Regularization: add a small amount of clipped 
+        # random noises to the selected action
+#        if policy_noise > 0.0:
+#            noise = torch.normal(torch.zeros(next_actions.size()), 
+#                                 policy_noise).to(device)
+#            noise = torch.clamp(noise, -noise_clip, noise_clip)
+#            next_actions = (next_actions + noise).clamp(-1., 1.)
         
         # next_states.view(batch_size, -1) => tensor(batch_size, 48)
         # tensor(batch_size, 1)
         Q_targets_next = \
             learning_agent.critic_target(next_states.view(batch_size, -1), 
-                                         actions_next).detach()
+                                         next_actions).detach()
         
-        if self.use_twin:
-            Q_targets_next2 = \
-                learning_agent.twin_target(next_states.view(batch_size, -1), 
-                                           actions_next).detach()
-            
-            Q_targets_next = torch.min(Q_targets_next, Q_targets_next2)
+#        if use_twin:
+#            Q_targets_next2 = \
+#                learning_agent.twin_target(next_states.view(batch_size, -1), 
+#                                           next_actions).detach()
+#            
+#            Q_targets_next = torch.min(Q_targets_next, Q_targets_next2)
         
         # tensor(batch_size, 1)
         rewards = rewards[:, agent_idx].view(-1, 1)
@@ -149,6 +148,10 @@ class MultiAgent():
             learning_agent.critic_local(states.view(batch_size, -1), 
                                         actions.view(batch_size, -1))
         
+#        if use_twin:
+#            Q_expected2 = \
+#                learning_agent.twin_local(states.view(batch_size, -1), 
+#                                          actions.view(batch_size, -1))
         
         # Compute critic loss
         if use_huber_loss:
@@ -156,6 +159,15 @@ class MultiAgent():
         else:
             critic_loss = F.mse_loss(Q_expected, Q_targets)
         
+#        if use_twin:
+#            # Compute critic loss twin Critic network
+#            if use_huber_loss:
+#                twin_loss = F.smooth_l1_loss(Q_expected2, Q_targets)
+#            else:
+#                twin_loss = F.mse_loss(Q_expected2, Q_targets)
+        
+        print(list(learning_agent.critic_local.parameters()))
+        print('============================================')
         # Minimize the loss
         learning_agent.critic_optim.zero_grad()
         critic_loss.backward()
@@ -166,26 +178,20 @@ class MultiAgent():
             
         learning_agent.critic_optim.step()
         
-        # Compute critic loss twin Critic network
-        if self.use_twin:
-            Q_expected2 = \
-                learning_agent.twin_local(states.view(batch_size, -1), 
-                                          actions.view(batch_size, -1))
-            
-            if use_huber_loss:
-                twin_loss = F.smooth_l1_loss(Q_expected2, Q_targets)
-            else:
-                twin_loss = F.mse_loss(Q_expected2, Q_targets)
-            
-            # Minimize the loss
-            learning_agent.twin_optim.zero_grad()
-            twin_loss.backward()
-            
-            if grad_clip_critic is not None:
-                clip_grad_norm_(learning_agent.twin_local.parameters(), 
-                                grad_clip_critic)
-                
-            learning_agent.twin_optim.step()
+        print(list(learning_agent.critic_local.parameters()))
+        print('============================================')
+        raise 'stop'
+        
+#        if use_twin:
+#            # Minimize the loss
+#            learning_agent.twin_optim.zero_grad()
+#            twin_loss.backward()
+#            
+#            if grad_clip_critic is not None:
+#                clip_grad_norm_(learning_agent.twin_local.parameters(), 
+#                                grad_clip_critic)
+#                
+#            learning_agent.twin_optim.step()
         
         self.p_update = (self.p_update + 1) % policy_freq_update
         
@@ -220,10 +226,10 @@ class MultiAgent():
                         learning_agent.critic_target, 
                         tau)
             
-            if self.use_twin:
-                soft_update(learning_agent.twin_local, 
-                            learning_agent.twin_target, 
-                            tau)
+#            if use_twin:
+#                soft_update(learning_agent.twin_local, 
+#                            learning_agent.twin_target, 
+#                            tau)
             
             soft_update(learning_agent.actor_local, 
                         learning_agent.actor_target, 
@@ -284,7 +290,8 @@ class MultiAgent():
                 best_score = avg_score
                 
                 for i, agent in enumerate(self.agents):
-                    torch.save(agent.actor_local.state_dict(), 'ddpg_actor{}_checkpoint.ph'.format(i))
+                    torch.save(agent.actor_local.state_dict(), 
+                               '{}_actor{}_checkpoint.ph'.format(agent.name, i))
                 
             if avg_score >= env_solved:
                 print('\nRunning evaluation without noise...')
