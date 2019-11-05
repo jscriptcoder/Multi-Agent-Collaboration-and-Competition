@@ -112,11 +112,11 @@ class MultiAgent():
         
         # Target Policy Smoothing Regularization: add a small amount of clipped 
         # random noises to the selected action
-#        if policy_noise > 0.0:
-#            noise = torch.normal(torch.zeros(next_actions.size()), 
-#                                 policy_noise).to(device)
-#            noise = torch.clamp(noise, -noise_clip, noise_clip)
-#            next_actions = (next_actions + noise).clamp(-1., 1.)
+        if policy_noise > 0.0:
+            noise = torch.normal(torch.zeros(next_actions.size()), 
+                                 policy_noise).to(device)
+            noise = torch.clamp(noise, -noise_clip, noise_clip)
+            next_actions = (next_actions + noise).clamp(-1., 1.)
         
         # next_states.view(batch_size, -1) => tensor(batch_size, 48)
         # tensor(batch_size, 1)
@@ -124,12 +124,12 @@ class MultiAgent():
             learning_agent.critic_target(next_states.view(batch_size, -1), 
                                          next_actions).detach()
         
-#        if use_twin:
-#            Q_targets_next2 = \
-#                learning_agent.twin_target(next_states.view(batch_size, -1), 
-#                                           next_actions).detach()
-#            
-#            Q_targets_next = torch.min(Q_targets_next, Q_targets_next2)
+        if use_twin:
+            Q_targets_next2 = \
+                learning_agent.twin_target(next_states.view(batch_size, -1), 
+                                           next_actions).detach()
+            
+            Q_targets_next = torch.min(Q_targets_next, Q_targets_next2)
         
         # tensor(batch_size, 1)
         rewards = rewards[:, agent_idx].view(-1, 1)
@@ -148,10 +148,10 @@ class MultiAgent():
             learning_agent.critic_local(states.view(batch_size, -1), 
                                         actions.view(batch_size, -1))
         
-#        if use_twin:
-#            Q_expected2 = \
-#                learning_agent.twin_local(states.view(batch_size, -1), 
-#                                          actions.view(batch_size, -1))
+        if use_twin:
+            Q_expected2 = \
+                learning_agent.twin_local(states.view(batch_size, -1), 
+                                          actions.view(batch_size, -1))
         
         # Compute critic loss
         if use_huber_loss:
@@ -159,15 +159,13 @@ class MultiAgent():
         else:
             critic_loss = F.mse_loss(Q_expected, Q_targets)
         
-#        if use_twin:
-#            # Compute critic loss twin Critic network
-#            if use_huber_loss:
-#                twin_loss = F.smooth_l1_loss(Q_expected2, Q_targets)
-#            else:
-#                twin_loss = F.mse_loss(Q_expected2, Q_targets)
+        if use_twin:
+            # Compute critic loss twin Critic network
+            if use_huber_loss:
+                twin_loss = F.smooth_l1_loss(Q_expected2, Q_targets)
+            else:
+                twin_loss = F.mse_loss(Q_expected2, Q_targets)
         
-        print(list(learning_agent.critic_local.parameters()))
-        print('============================================')
         # Minimize the loss
         learning_agent.critic_optim.zero_grad()
         critic_loss.backward()
@@ -178,20 +176,16 @@ class MultiAgent():
             
         learning_agent.critic_optim.step()
         
-        print(list(learning_agent.critic_local.parameters()))
-        print('============================================')
-        raise 'stop'
-        
-#        if use_twin:
-#            # Minimize the loss
-#            learning_agent.twin_optim.zero_grad()
-#            twin_loss.backward()
-#            
-#            if grad_clip_critic is not None:
-#                clip_grad_norm_(learning_agent.twin_local.parameters(), 
-#                                grad_clip_critic)
-#                
-#            learning_agent.twin_optim.step()
+        if use_twin:
+            # Minimize the loss
+            learning_agent.twin_optim.zero_grad()
+            twin_loss.backward()
+            
+            if grad_clip_critic is not None:
+                clip_grad_norm_(learning_agent.twin_local.parameters(), 
+                                grad_clip_critic)
+                
+            learning_agent.twin_optim.step()
         
         self.p_update = (self.p_update + 1) % policy_freq_update
         
@@ -226,10 +220,10 @@ class MultiAgent():
                         learning_agent.critic_target, 
                         tau)
             
-#            if use_twin:
-#                soft_update(learning_agent.twin_local, 
-#                            learning_agent.twin_target, 
-#                            tau)
+            if use_twin:
+                soft_update(learning_agent.twin_local, 
+                            learning_agent.twin_target, 
+                            tau)
             
             soft_update(learning_agent.actor_local, 
                         learning_agent.actor_target, 
