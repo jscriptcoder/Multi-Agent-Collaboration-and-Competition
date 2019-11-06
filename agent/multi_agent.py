@@ -66,28 +66,13 @@ class MultiAgent():
                 # Multiple updates in one learning step
                 for _ in range(num_updates):
                     experiences = self.memory.sample()
-                    for i in range(num_agents):
-                        self.learn(experiences, i)
+                    self.learn(experiences)
 
-    def learn(self, experiences, agent_idx):
-        """Update policy and value parameters using given batch of experience tuples.
-        Q_targets = r + γ * critic_target(next_state, actor_target(next_state))
-        where:
-            actor_target(state) -> action
-            critic_target(state, action) -> Q-value
-
-        Params
-        ======
-            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples 
-        """
+    def learn(self, experiences):
         policy_freq_update = self.config.policy_freq_update
         policy_noise = self.config.policy_noise
         noise_clip = self.config.noise_clip
-        grad_clip_actor = self.config.grad_clip_actor
-        grad_clip_critic = self.config.grad_clip_critic
         batch_size = self.config.batch_size
-        use_huber_loss = self.config.use_huber_loss
-        gamma = self.config.gamma
         tau = self.config.tau
         use_twin = self.use_twin
         
@@ -96,9 +81,6 @@ class MultiAgent():
          rewards, 
          next_states, 
          dones) = from_experience(experiences)
-        
-        # Current agent learning
-        learning_agent = self.agents[agent_idx]
         
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
@@ -118,116 +100,50 @@ class MultiAgent():
             noise = torch.clamp(noise, -noise_clip, noise_clip)
             next_actions = (next_actions + noise).clamp(-1., 1.)
         
-        # next_states.view(batch_size, -1) => tensor(batch_size, 48)
-        # tensor(batch_size, 1)
-        Q_targets_next = \
-            learning_agent.critic_target(next_states.view(batch_size, -1), 
-                                         next_actions).detach()
+        states = states.view(batch_size, -1)
+        actions = actions.view(batch_size, -1)
+        next_states = next_states.view(batch_size, -1)
         
-        if use_twin:
-            Q_targets_next2 = \
-                learning_agent.twin_target(next_states.view(batch_size, -1), 
-                                           next_actions).detach()
+        for i, agent in enumerate(self.agents):
+            rewards = rewards[:, i].view(-1, 1)
+            dones = dones[:, i].view(-1, 1)
             
-            Q_targets_next = torch.min(Q_targets_next, Q_targets_next2)
-        
-        # tensor(batch_size, 1)
-        rewards = rewards[:, agent_idx].view(-1, 1)
-        
-        # tensor(batch_size, 1)
-        dones = dones[:, agent_idx].view(-1, 1)
-
-        # Compute Q targets for current states
-        # tensor(batch_size, 1)
-        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
-        
-        # states.view(batch_size, -1) => tensor(batch_size, 48)
-        # actions.view(batch_size, -1) => tensorbatch_size, 4)
-        # tensor(batch_size 1)
-        Q_expected = \
-            learning_agent.critic_local(states.view(batch_size, -1), 
-                                        actions.view(batch_size, -1))
-        
-        if use_twin:
-            Q_expected2 = \
-                learning_agent.twin_local(states.view(batch_size, -1), 
-                                          actions.view(batch_size, -1))
-        
-        # Compute critic loss
-        if use_huber_loss:
-            critic_loss = F.smooth_l1_loss(Q_expected, Q_targets)
-        else:
-            critic_loss = F.mse_loss(Q_expected, Q_targets)
-        
-        if use_twin:
-            # Compute critic loss twin Critic network
-            if use_huber_loss:
-                twin_loss = F.smooth_l1_loss(Q_expected2, Q_targets)
-            else:
-                twin_loss = F.mse_loss(Q_expected2, Q_targets)
-        
-        # Minimize the loss
-        learning_agent.critic_optim.zero_grad()
-        critic_loss.backward()
-        
-        if grad_clip_critic is not None:
-            clip_grad_norm_(learning_agent.critic_local.parameters(), 
-                            grad_clip_critic)
-            
-        learning_agent.critic_optim.step()
-        
-        if use_twin:
-            # Minimize the loss
-            learning_agent.twin_optim.zero_grad()
-            twin_loss.backward()
-            
-            if grad_clip_critic is not None:
-                clip_grad_norm_(learning_agent.twin_local.parameters(), 
-                                grad_clip_critic)
-                
-            learning_agent.twin_optim.step()
+            agent.update_critic(states, 
+                                actions, 
+                                next_states, 
+                                next_actions, 
+                                rewards, 
+                                dones)
         
         self.p_update = (self.p_update + 1) % policy_freq_update
         
         if self.p_update == 0:
             # ---------------------------- update actor ---------------------------- #
-            # Compute actor loss
+            for agent_idx in range(self.agents):
+                # Collect the actions for all the agents in that state
+                pred_actions = [agent.actor_local(states[:, i, :]) \
+                                if i == agent_idx \
+                                else agent.actor_local(states[:, i, :]).detach() \
+                                for i, agent in enumerate(self.agents)]
             
-            # Collect the actions for all the agents in that state
-            actions_pred = [agent.actor_local(states[:, i, :]) \
-                            if i == agent_idx \
-                            else agent.actor_local(states[:, i, :]).detach() \
-                            for i, agent in enumerate(self.agents)]
+            pred_actions = torch.cat(pred_actions, dim=1).to(device)
             
-            actions_pred = torch.cat(actions_pred, dim=1).to(device)
+            for agent in self.agents:
+                agent.update_actor(states, pred_actions)
             
-            actor_loss = \
-                -learning_agent.critic_local(states.view(batch_size, -1), 
-                                             actions_pred).mean()
-            
-            # Minimize the loss
-            learning_agent.actor_optim.zero_grad()
-            actor_loss.backward()
-            
-            if grad_clip_actor is not None:
-                clip_grad_norm_(learning_agent.actor_local.parameters(), 
-                                grad_clip_actor)
-                
-            learning_agent.actor_optim.step()
-            
-            # ----------------------- update target networks ----------------------- #
-            soft_update(learning_agent.critic_local, 
-                        learning_agent.critic_target, 
-                        tau)
-            
-            if use_twin:
-                soft_update(learning_agent.twin_local, 
-                            learning_agent.twin_target, 
+                # ----------------------- update target networks ----------------------- #
+                soft_update(agent.critic_local, 
+                            agent.critic_target, 
                             tau)
-            
-            soft_update(learning_agent.actor_local, 
-                        learning_agent.actor_target, 
-                        tau) 
+                
+                if use_twin:
+                    soft_update(agent.twin_local, 
+                                agent.twin_target, 
+                                tau)
+                
+                soft_update(agent.actor_local, 
+                            agent.actor_target, 
+                            tau) 
 
     def summary(self):
         for i, agent in enumerate(self.agents):

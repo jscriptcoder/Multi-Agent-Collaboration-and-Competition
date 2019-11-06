@@ -92,6 +92,64 @@ class DDPGAgent():
 
     def reset(self):
         self.noise.reset()
+    
+    def update_critic(self, 
+                      states, 
+                      actions
+                      next_states, 
+                      next_actions, 
+                      rewards, 
+                      dones):
+        
+        grad_clip_critic = self.config.grad_clip_critic
+        use_huber_loss = self.config.use_huber_loss
+        gamma = self.config.gamma
+        
+        # next_states => tensor(batch_size, 48)
+        # next_actions => tensorbatch_size, 4)
+        # Q_targets_next => tensor(batch_size, 1)
+        Q_targets_next = \
+            self.critic_target(next_states, next_actions).detach()
+
+        # Compute Q targets for current states
+        # tensor(batch_size, 1)
+        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
+        
+        # states => tensor(batch_size, 48)
+        # actions => tensorbatch_size, 4)
+        # Q_expected => tensor(batch_size 1)
+        Q_expected = self.critic_local(states, actions)
+        
+        # Compute critic loss
+        if use_huber_loss:
+            critic_loss = F.smooth_l1_loss(Q_expected, Q_targets)
+        else:
+            critic_loss = F.mse_loss(Q_expected, Q_targets)
+        
+        # Minimize the loss
+        self.critic_optim.zero_grad()
+        critic_loss.backward()
+        
+        if grad_clip_critic is not None:
+            clip_grad_norm_(self.critic_local.parameters(), 
+                            grad_clip_critic)
+            
+        self.critic_optim.step()
+    
+    def update_actor(self, states, pred_actions):
+        grad_clip_actor = self.config.grad_clip_actor
+        
+        actor_loss = -self.critic_local(states, pred_actions).mean()
+        
+        # Minimize the loss
+        self.actor_optim.zero_grad()
+        actor_loss.backward()
+        
+        if grad_clip_actor is not None:
+            clip_grad_norm_(self.actor_local.parameters(), 
+                            grad_clip_actor)
+            
+        self.actor_optim.step()
 
     def summary(self, agent_name='DDGP Agent'):
         print('{}:'.format(agent_name))
