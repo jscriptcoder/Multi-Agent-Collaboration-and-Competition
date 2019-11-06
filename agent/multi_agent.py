@@ -1,14 +1,12 @@
 import time
 import random
 import torch
-import torch.nn.functional as F
 import numpy as np
-from torch.nn.utils import clip_grad_norm_
 from collections import deque
 
 from .replay_buffer import ReplayBuffer
 from .utils import make_experience, from_experience
-from .utils import soft_update, get_time_elapsed
+from .utils import get_time_elapsed
 from .device import device
 
 class MultiAgent():
@@ -26,8 +24,6 @@ class MultiAgent():
         
         self.t_step = 0
         self.p_update = 0
-        self.use_twin = hasattr(self.agents[0], 'twin_local')
-        
     
     def reset(self):
         for agent in self.agents:
@@ -45,7 +41,6 @@ class MultiAgent():
         
         batch_size = self.config.batch_size
         update_every = self.config.update_every
-        num_agents = self.config.num_agents
         num_updates = self.config.num_updates
         
         experience = make_experience(states, 
@@ -69,12 +64,9 @@ class MultiAgent():
                     self.learn(experiences)
 
     def learn(self, experiences):
+        
         policy_freq_update = self.config.policy_freq_update
-        policy_noise = self.config.policy_noise
-        noise_clip = self.config.noise_clip
         batch_size = self.config.batch_size
-        tau = self.config.tau
-        use_twin = self.use_twin
         
         (states, 
          actions, 
@@ -92,58 +84,30 @@ class MultiAgent():
         # tensor(batch_size, 4)
         next_actions = torch.cat(next_actions, dim=1).to(device)
         
-        # Target Policy Smoothing Regularization: add a small amount of clipped 
-        # random noises to the selected action
-        if policy_noise > 0.0:
-            noise = torch.normal(torch.zeros(next_actions.size()), 
-                                 policy_noise).to(device)
-            noise = torch.clamp(noise, -noise_clip, noise_clip)
-            next_actions = (next_actions + noise).clamp(-1., 1.)
-        
-        states = states.view(batch_size, -1)
-        actions = actions.view(batch_size, -1)
-        next_states = next_states.view(batch_size, -1)
-        
         for i, agent in enumerate(self.agents):
-            rewards = rewards[:, i].view(-1, 1)
-            dones = dones[:, i].view(-1, 1)
-            
-            agent.update_critic(states, 
-                                actions, 
-                                next_states, 
+            agent.update_critic(states.view(batch_size, -1), 
+                                actions.view(batch_size, -1), 
+                                next_states.view(batch_size, -1), 
                                 next_actions, 
-                                rewards, 
-                                dones)
+                                rewards[:, i].view(-1, 1), 
+                                dones[:, i].view(-1, 1))
         
         self.p_update = (self.p_update + 1) % policy_freq_update
         
         if self.p_update == 0:
             # ---------------------------- update actor ---------------------------- #
-            for agent_idx in range(self.agents):
+            for agent_idx, learning_agent in enumerate(self.agents):
                 # Collect the actions for all the agents in that state
+                # We need to detach actions for all the other agents
                 pred_actions = [agent.actor_local(states[:, i, :]) \
                                 if i == agent_idx \
                                 else agent.actor_local(states[:, i, :]).detach() \
                                 for i, agent in enumerate(self.agents)]
             
-            pred_actions = torch.cat(pred_actions, dim=1).to(device)
+                pred_actions = torch.cat(pred_actions, dim=1).to(device)
             
-            for agent in self.agents:
-                agent.update_actor(states, pred_actions)
-            
-                # ----------------------- update target networks ----------------------- #
-                soft_update(agent.critic_local, 
-                            agent.critic_target, 
-                            tau)
-                
-                if use_twin:
-                    soft_update(agent.twin_local, 
-                                agent.twin_target, 
-                                tau)
-                
-                soft_update(agent.actor_local, 
-                            agent.actor_target, 
-                            tau) 
+                learning_agent.update_actor(states.view(batch_size, -1), 
+                                            pred_actions)
 
     def summary(self):
         for i, agent in enumerate(self.agents):

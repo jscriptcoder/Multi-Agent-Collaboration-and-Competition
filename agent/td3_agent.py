@@ -1,6 +1,11 @@
+import torch
+import torch.nn.functional as F
+from torch.nn.utils import clip_grad_norm_
+
 from .ddpg_agent import DDPGAgent
 from .critic import Critic
 from .utils import soft_update
+from .device import device
 
 class TD3Agent(DDPGAgent):
     
@@ -26,26 +31,36 @@ class TD3Agent(DDPGAgent):
     
     def update_critic(self, 
                       states, 
-                      actions
+                      actions,
                       next_states, 
                       next_actions, 
                       rewards, 
                       dones):
         
+        policy_noise = self.config.policy_noise
+        noise_clip = self.config.noise_clip
         grad_clip_critic = self.config.grad_clip_critic
         use_huber_loss = self.config.use_huber_loss
         gamma = self.config.gamma
+        tau = self.config.tau
+        
+        # Target Policy Smoothing Regularization: add a small amount of clipped 
+        # random noises to the selected action
+        if policy_noise > 0.0:
+            noise = torch.normal(torch.zeros(next_actions.size()), 
+                                 policy_noise).to(device)
+            noise = torch.clamp(noise, -noise_clip, noise_clip)
+            next_actions = (next_actions + noise).clamp(-1., 1.)
         
         # next_states => tensor(batch_size, 48)
         # next_actions => tensorbatch_size, 4)
-        # Q_targets_next1 => tensor(batch_size, 1)
         Q_targets_next1 = \
-            self.critic_target(next_states, next_actions).detach()
-        
+            self.critic_target(next_states, next_actions)
         Q_targets_next2 = \
-            self.twin_target(next_states, next_actions).detach()
+            self.twin_target(next_states, next_actions)
         
-        Q_targets_next = torch.min(Q_targets_next1, Q_targets_next2)
+        # Q_targets_next => tensor(batch_size, 1)
+        Q_targets_next = torch.min(Q_targets_next1, Q_targets_next2).detach()
         
         # Compute Q targets for current states
         # tensor(batch_size, 1)
@@ -53,9 +68,8 @@ class TD3Agent(DDPGAgent):
         
         # states.view(batch_size, -1) => tensor(batch_size, 48)
         # actions.view(batch_size, -1) => tensorbatch_size, 4)
-        # tensor(batch_size 1)
+        # Q_expected => tensor(batch_size 1)
         Q_expected1 = self.critic_local(states, actions)
-        
         Q_expected2 = self.twin_local(states, actions)
         
         # Compute critic loss
@@ -82,6 +96,9 @@ class TD3Agent(DDPGAgent):
             clip_grad_norm_(self.twin_local.parameters(), grad_clip_critic)
             
         self.twin_optim.step()
+        
+        soft_update(self.critic_local, self.critic_target, tau)
+        soft_update(self.twin_local, self.twin_target, tau)
     
     def summary(self, agent_name='TD3 Agent'):
         super().summary(agent_name)

@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import torch.nn.functional as F
+from torch.nn.utils import clip_grad_norm_
 
 from .actor import Actor
 from .critic import Critic
@@ -95,7 +97,7 @@ class DDPGAgent():
     
     def update_critic(self, 
                       states, 
-                      actions
+                      actions,
                       next_states, 
                       next_actions, 
                       rewards, 
@@ -104,6 +106,7 @@ class DDPGAgent():
         grad_clip_critic = self.config.grad_clip_critic
         use_huber_loss = self.config.use_huber_loss
         gamma = self.config.gamma
+        tau = self.config.tau
         
         # next_states => tensor(batch_size, 48)
         # next_actions => tensorbatch_size, 4)
@@ -135,9 +138,12 @@ class DDPGAgent():
                             grad_clip_critic)
             
         self.critic_optim.step()
+        
+        soft_update(self.critic_local, self.critic_target, tau)
     
     def update_actor(self, states, pred_actions):
         grad_clip_actor = self.config.grad_clip_actor
+        tau = self.config.tau
         
         actor_loss = -self.critic_local(states, pred_actions).mean()
         
@@ -150,6 +156,8 @@ class DDPGAgent():
                             grad_clip_actor)
             
         self.actor_optim.step()
+        
+        soft_update(self.actor_local, self.actor_target, tau)
 
     def summary(self, agent_name='DDGP Agent'):
         print('{}:'.format(agent_name))
