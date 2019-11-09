@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.distributions import Normal
 
 from .device import device
 from .base_network import BaseNetwork
@@ -10,7 +11,8 @@ class GaussianPolicy(BaseNetwork):
                  action_size, 
                  hidden_size, 
                  activ, 
-                 log_std_min=-20, log_std_max=2):
+                 log_std_min=-20, 
+                 log_std_max=2):
         super().__init__(activ)
         
         self.log_std_min = log_std_min
@@ -46,3 +48,24 @@ class GaussianPolicy(BaseNetwork):
                               max=self.log_std_max)
         
         return mean, log_std
+    
+    def sample(self, state, eps=1e-6):
+        mean, log_std = self.forward(state)
+        std = log_std.exp() # will always give a positive value
+        
+        # Reparameterization trick (mean + std * N(0,1))
+        # We can achieve the same by just doing: action = m.rsample()
+        # see https://pytorch.org/docs/stable/distributions.html#pathwise-derivative
+        normal = Normal(0, 1)
+        z = normal.sample().to(device)
+        x = mean + std * z
+        
+        action = torch.tanh(x)
+        log_prob = normal.log_prob(x)
+        
+        # Enforcing action bound for continuous actions
+        # see Appendix C in papers
+        log_prob -= torch.log(1 - action.pow(2) + eps)#.sum(1)
+        
+        return action, log_prob, torch.tanh(mean)
+        

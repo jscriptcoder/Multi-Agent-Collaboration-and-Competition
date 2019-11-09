@@ -17,7 +17,9 @@ class SACAgent:
         self.policy = GaussianPolicy(config.state_size, 
                                      config.action_size, 
                                      config.hidden_actor, 
-                                     config.activ_actor)
+                                     config.activ_actor, 
+                                     config.log_std_min, 
+                                     config.log_std_max)
         
         self.Q1_local = Critic(config.state_size * config.num_agents, 
                                config.action_size * config.num_agents, 
@@ -53,18 +55,26 @@ class SACAgent:
         self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
         self.alpha = self.log_alpha.detach().exp()
         self.target_entropy = -config.action_size
+        self.alpha_optim = config.optim_alpha([self.log_alpha], lr=config.lr_alpha)
     
-    def act(self, state, add_noise=True):
+    def act(self, state, eval=False):
         """Returns actions for given state as per current policy."""
         
-        mean, log_std = self.policy(state)
-        std = log_std.exp()
+        if eval == False:
+            action, _, _ = self.policy.sample(state)
+        else:
+            _, _, action = self.policy.sample(state)
         
-        normal = Normal(mean, std)
+        return action.detach().cpu().numpy()
+    
+    def update_policy(self, 
+                      states, 
+                      actions,
+                      next_states, 
+                      next_actions, 
+                      rewards, 
+                      dones):
         
-        # Reparameterization trick (mean + std * N(0,1))
-        trick = normal.rsample()
-        
-        # Squashing result
-        action = torch.tanh(trick)
+#        with torch.no_grad():
+        pass
         
