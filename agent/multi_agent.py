@@ -31,8 +31,8 @@ class MultiAgent():
         
         return self.config.env.reset()
     
-    def act(self, states, add_noise=True):
-        return np.array([agent.act(state, add_noise=add_noise) \
+    def act(self, states, train=True):
+        return np.array([agent.act(state, add_noise=train) \
                          for agent, state \
                          in zip(self.agents, states)])
     
@@ -200,7 +200,7 @@ class MultiAgent():
         for _ in range(times_solved):
             states = env.reset()
             while True:
-                actions = self.act(states, add_noise=False)
+                actions = self.act(states, train=False)
                 states, rewards, dones, _ = env.step(actions)
 
                 total_reward += rewards
