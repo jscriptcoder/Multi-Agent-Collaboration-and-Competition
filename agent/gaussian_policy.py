@@ -23,7 +23,7 @@ class GaussianPolicy(BaseNetwork):
         self.build_layers(dims)
 
         # Will depends on state
-        self.log_std = nn.Linear(hidden_size, action_size)
+        self.log_std = nn.Linear(dims[-2], dims[-1])
         
         self.reset_parameters()
         
@@ -54,18 +54,21 @@ class GaussianPolicy(BaseNetwork):
         std = log_std.exp() # will always give a positive value
         
         # Reparameterization trick (mean + std * N(0,1))
-        # We can achieve the same by just doing: action = m.rsample()
+        # We can achieve the same by just doing: 
+        #   normal = Normal(mean, std)
+        #   action = normal.rsample()
         # see https://pytorch.org/docs/stable/distributions.html#pathwise-derivative
         normal = Normal(0, 1)
         z = normal.sample().to(device)
         x = mean + std * z
         
         action = torch.tanh(x)
-        log_prob = normal.log_prob(x)
+        log_prob = Normal(mean, std).log_prob(x)
         
         # Enforcing action bound for continuous actions
         # see Appendix C in papers
-        log_prob -= torch.log(1 - action.pow(2) + eps)#.sum(1)
+        log_prob -= torch.log(1 - action.pow(2) + eps)
+        log_prob = log_prob.sum()
         
         return action, log_prob, torch.tanh(mean)
         

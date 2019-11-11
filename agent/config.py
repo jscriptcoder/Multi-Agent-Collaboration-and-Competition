@@ -44,6 +44,8 @@ class Config:
     policy_freq_update = 2 
     log_std_min=-20
     log_std_max=2
+    alpha = 0.01
+    alpha_auto_tuning = True
     optim_alpha = Adam
     lr_alpha = 3e-4
     

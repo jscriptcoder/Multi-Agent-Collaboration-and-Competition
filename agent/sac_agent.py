@@ -14,6 +14,8 @@ class SACAgent:
     
     def __init__(self, config):
         
+        self.config = config
+        
         self.policy = GaussianPolicy(config.state_size, 
                                      config.action_size, 
                                      config.hidden_actor, 
@@ -54,11 +56,14 @@ class SACAgent:
         self.Q2_optim = config.optim_critic(self.Q2_local.parameters(), 
                                             lr=config.lr_critic)
         
-        # temperature variable to be learned, and its target entropy
-        self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
-        self.alpha = self.log_alpha.detach().exp()
-        self.target_entropy = -config.action_size
-        self.alpha_optim = config.optim_alpha([self.log_alpha], lr=config.lr_alpha)
+        if config.alpha_auto_tuning:
+            # temperature variable to be learned, and its target entropy
+            self.log_alpha = torch.zeros(1, requires_grad=True, device=device)
+            self.alpha = self.log_alpha.detach().exp()
+            self.target_entropy = -config.action_size
+            self.alpha_optim = config.optim_alpha([self.log_alpha], lr=config.lr_alpha)
+        else:
+            self.alpha = config.alpha
     
     def act(self, state, train=True):
         """Returns actions for given state as per current policy."""
@@ -70,12 +75,15 @@ class SACAgent:
         
         return action.detach().cpu().numpy()
     
+    def reset(self):
+        pass
+    
     def update_Q(self, 
                  states, 
                  actions, 
                  next_states, 
                  next_actions, 
-                 next_logs_pi, 
+                 next_log_probs, 
                  rewards, 
                  dones):
         
@@ -84,14 +92,15 @@ class SACAgent:
         gamma = self.config.gamma
         tau = self.config.tau
         
-        Q1_targets_next = self.Q1_target(next_states, next_actions)
-        Q2_targets_next = self.Q2_target(next_states, next_actions)
-        
-        Q_targets_next = torch.min(Q1_targets_next, Q2_targets_next).detach()
+        with torch.no_grad():
+            Q1_targets_next = self.Q1_target(next_states, next_actions)
+            Q2_targets_next = self.Q2_target(next_states, next_actions)
             
-        Q_targets = rewards + (gamma * \
-                               (Q_targets_next - self.alpha * next_logs_pi) * \
-                               (1 - dones))
+            Q_targets_next = torch.min(Q1_targets_next, Q2_targets_next)
+
+            Q_targets = rewards + (gamma * \
+                                   (Q_targets_next - self.alpha * next_log_probs) * \
+                                   (1 - dones))
         
         Q1_expected = self.Q1_local(states, actions)
         Q2_expected = self.Q2_local(states, actions)
@@ -124,15 +133,14 @@ class SACAgent:
         soft_update(self.Q1_local, self.Q1_target, tau)
         soft_update(self.Q2_local, self.Q2_target, tau)
     
-    def update_policy(self, states, pred_actions, pred_logs_pi):
+    def update_policy(self, states, pred_actions, pred_log_props):
         grad_clip_actor = self.config.grad_clip_actor
-        tau = self.config.tau
         
         Q1_pred = self.Q1_local(states, pred_actions)
         Q2_pred = self.Q2_local(states, pred_actions)
         Q_pred = torch.min(Q1_pred, Q2_pred)
         
-        policy_loss = (self.alpha * pred_logs_pi - Q_pred).mean()
+        policy_loss = (self.alpha * pred_log_props - Q_pred).mean()
         
         self.policy_optim.zero_grad()
         policy_loss.backward()
@@ -142,3 +150,27 @@ class SACAgent:
                             grad_clip_actor)
         
         self.policy_optim.step()
+    
+    def try_update_alpha(self, log_probs):
+        alpha_auto_tuning = self.config.alpha_auto_tuning
+        
+        if alpha_auto_tuning:
+            alpha_loss = -(self.log_alpha * (log_probs.detach() + self.target_entropy)).mean()
+            
+            self.alpha_optim.zero_grad()
+            alpha_loss.backward()
+            self.alpha_optim.step()
+            
+            self.alpha = self.log_alpha.detach().exp()
+    
+    def summary(self, agent_name='SAC Agent'):
+        print('{}:'.format(agent_name))
+        print('==========')
+        print('')
+        print('Policy Network:')
+        print('--------------')
+        print(self.policy)  
+        print('')
+        print('Q Network:')
+        print('----------')
+        print(self.Q1_local)

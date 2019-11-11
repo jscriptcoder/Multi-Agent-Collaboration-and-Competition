@@ -32,7 +32,7 @@ class MultiAgent():
         return self.config.env.reset()
     
     def act(self, states, train=True):
-        return np.array([agent.act(state, add_noise=train) \
+        return np.array([agent.act(state, train) \
                          for agent, state \
                          in zip(self.agents, states)])
     
@@ -162,10 +162,7 @@ class MultiAgent():
             
             if avg_score > best_score:
                 best_score = avg_score
-                
-                for i, agent in enumerate(self.agents):
-                    torch.save(agent.actor_local.state_dict(), 
-                               '{}_actor{}_checkpoint.ph'.format(agent.name, i))
+                self.save_agents_weights()
                 
             if avg_score >= env_solved:
                 print('\nRunning evaluation without noise...')
@@ -185,6 +182,11 @@ class MultiAgent():
         env.close()
         
         return scores
+    
+    def save_agents_weights(self):
+        for i, agent in enumerate(self.agents):
+            torch.save(agent.actor_local.state_dict(), 
+                       '{}_actor{}_checkpoint.ph'.format(agent.name, i))
     
     def eval_episode(self):
         """Evaluation method. 
