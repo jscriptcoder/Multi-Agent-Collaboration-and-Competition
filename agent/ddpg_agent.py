@@ -9,18 +9,9 @@ from .noise import OUNoise, GaussianNoise
 from .utils import soft_update
 
 class DDPGAgent():
-    """Interacts with and learns from the environment."""
-    
     name = 'DDPG'
     
     def __init__(self, config):
-        """Initialize an Agent object.
-        
-        Params
-        ======
-            config (Config)
-        """
-        
         self.config = config
 
         # Actor Network (w/ Target Network)
@@ -67,8 +58,6 @@ class DDPGAgent():
         self.noise_weight = config.noise_weight
     
     def act(self, state, add_noise=True):
-        """Returns actions for given state as per current policy."""
-        
         decay_noise = self.config.decay_noise
         use_linear_decay = self.config.use_linear_decay
         noise_linear_decay = self.config.noise_linear_decay

@@ -66,14 +66,18 @@ class SACAgent:
             self.alpha = config.alpha
     
     def act(self, state, train=True):
-        """Returns actions for given state as per current policy."""
+        # Since there is only one state we're gonna insert a new dimension
+        # so we make it as if it was batch_size=1
+        state = torch.FloatTensor(state).unsqueeze(0).to(device)
         
         if train:
             action, _, _ = self.policy.sample(state)
         else:
             _, _, action = self.policy.sample(state)
         
-        return action.detach().cpu().numpy()
+        # We need to extract the action from position 0
+        # because previously we inserted a new dimension
+        return action.detach().cpu().numpy()[0]
     
     def reset(self):
         pass
@@ -83,7 +87,7 @@ class SACAgent:
                  actions, 
                  next_states, 
                  next_actions, 
-                 next_log_probs, 
+                 next_log_prob, 
                  rewards, 
                  dones):
         
@@ -97,9 +101,9 @@ class SACAgent:
             Q2_targets_next = self.Q2_target(next_states, next_actions)
             
             Q_targets_next = torch.min(Q1_targets_next, Q2_targets_next)
-
+            
             Q_targets = rewards + (gamma * \
-                                   (Q_targets_next - self.alpha * next_log_probs) * \
+                                   (Q_targets_next - self.alpha * next_log_prob) * \
                                    (1 - dones))
         
         Q1_expected = self.Q1_local(states, actions)
@@ -133,14 +137,14 @@ class SACAgent:
         soft_update(self.Q1_local, self.Q1_target, tau)
         soft_update(self.Q2_local, self.Q2_target, tau)
     
-    def update_policy(self, states, pred_actions, pred_log_props):
+    def update_policy(self, states, pred_actions, pred_log_prop):
         grad_clip_actor = self.config.grad_clip_actor
         
         Q1_pred = self.Q1_local(states, pred_actions)
         Q2_pred = self.Q2_local(states, pred_actions)
         Q_pred = torch.min(Q1_pred, Q2_pred)
         
-        policy_loss = (self.alpha * pred_log_props - Q_pred).mean()
+        policy_loss = (self.alpha * pred_log_prop - Q_pred).mean()
         
         self.policy_optim.zero_grad()
         policy_loss.backward()

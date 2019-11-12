@@ -68,7 +68,8 @@ class GaussianPolicy(BaseNetwork):
         # Enforcing action bound for continuous actions
         # see Appendix C in papers
         log_prob -= torch.log(1 - action.pow(2) + eps)
-        log_prob = log_prob.sum()
+        log_prob = log_prob.sum(1, keepdim=True)
+        
         
         return action, log_prob, torch.tanh(mean)
         

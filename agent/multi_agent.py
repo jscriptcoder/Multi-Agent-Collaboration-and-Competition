@@ -37,8 +37,6 @@ class MultiAgent():
                          in zip(self.agents, states)])
     
     def step(self, states, actions, rewards, next_states, dones):
-        """Save experience in replay memory, and use random sample from buffer to learn."""
-        
         batch_size = self.config.batch_size
         update_every = self.config.update_every
         num_updates = self.config.num_updates
@@ -189,10 +187,6 @@ class MultiAgent():
                        '{}_actor{}_checkpoint.ph'.format(agent.name, i))
     
     def eval_episode(self):
-        """Evaluation method. 
-        Will run times_solved times and avarage the total reward obtained
-        """
-        
         num_agents = self.config.num_agents
         times_solved = self.config.times_solved
         env = self.config.env

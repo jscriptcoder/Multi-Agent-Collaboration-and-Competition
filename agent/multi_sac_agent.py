@@ -28,17 +28,13 @@ class MultiSacAgent(MultiAgent):
         next_actions = torch.cat(next_actions, dim=1).to(device)
         next_log_probs = torch.cat(next_log_probs, dim=1).to(device)
         
-        print(next_actions.size())
-        print(next_log_probs.size())
-        raise 'stop'
-        
         for agent_idx, learning_agent in enumerate(self.agents):
             # Update Q values
             learning_agent.update_Q(states.view(batch_size, -1), 
                                     actions.view(batch_size, -1), 
                                     next_states.view(batch_size, -1), 
                                     next_actions, 
-                                    next_log_probs, 
+                                    next_log_probs[:, agent_idx].view(-1, 1), 
                                     rewards[:, agent_idx].view(-1, 1), 
                                     dones[:, agent_idx].view(-1, 1))
             
@@ -59,7 +55,7 @@ class MultiSacAgent(MultiAgent):
             # Update Policy
             learning_agent.update_policy(states.view(batch_size, -1), 
                                          pred_actions, 
-                                         pred_log_props)
+                                         pred_log_props[:, agent_idx].view(-1, 1))
             
             # Update temeperature
             learning_agent.try_update_alpha(pred_log_props)
