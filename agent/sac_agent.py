@@ -155,11 +155,11 @@ class SACAgent:
         
         self.policy_optim.step()
     
-    def try_update_alpha(self, log_probs):
+    def try_update_alpha(self, log_prob):
         alpha_auto_tuning = self.config.alpha_auto_tuning
         
         if alpha_auto_tuning:
-            alpha_loss = -(self.log_alpha * (log_probs.detach() + self.target_entropy)).mean()
+            alpha_loss = -(self.log_alpha * (log_prob.detach() + self.target_entropy)).mean()
             
             self.alpha_optim.zero_grad()
             alpha_loss.backward()

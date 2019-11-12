@@ -58,7 +58,7 @@ class MultiSacAgent(MultiAgent):
                                          pred_log_props[:, agent_idx].view(-1, 1))
             
             # Update temeperature
-            learning_agent.try_update_alpha(pred_log_props)
+            learning_agent.try_update_alpha(pred_log_props[:, agent_idx].view(-1, 1))
     
     def save_agents_weights(self):
         for i, agent in enumerate(self.agents):
