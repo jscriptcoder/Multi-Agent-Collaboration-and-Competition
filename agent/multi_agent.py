@@ -31,14 +31,12 @@ class MultiAgent():
         
         return self.config.env.reset()
     
-    def act(self, states, add_noise=True):
-        return np.array([agent.act(state, add_noise=add_noise) \
+    def act(self, states, train=True):
+        return np.array([agent.act(state, train) \
                          for agent, state \
                          in zip(self.agents, states)])
     
     def step(self, states, actions, rewards, next_states, dones):
-        """Save experience in replay memory, and use random sample from buffer to learn."""
-        
         batch_size = self.config.batch_size
         update_every = self.config.update_every
         num_updates = self.config.num_updates
@@ -162,10 +160,7 @@ class MultiAgent():
             
             if avg_score > best_score:
                 best_score = avg_score
-                
-                for i, agent in enumerate(self.agents):
-                    torch.save(agent.actor_local.state_dict(), 
-                               '{}_actor{}_checkpoint.ph'.format(agent.name, i))
+                self.save_agents_weights()
                 
             if avg_score >= env_solved:
                 print('\nRunning evaluation without noise...')
@@ -186,11 +181,12 @@ class MultiAgent():
         
         return scores
     
+    def save_agents_weights(self):
+        for i, agent in enumerate(self.agents):
+            torch.save(agent.actor_local.state_dict(), 
+                       '{}_actor{}_checkpoint.ph'.format(agent.name, i))
+    
     def eval_episode(self):
-        """Evaluation method. 
-        Will run times_solved times and avarage the total reward obtained
-        """
-        
         num_agents = self.config.num_agents
         times_solved = self.config.times_solved
         env = self.config.env
@@ -200,7 +196,7 @@ class MultiAgent():
         for _ in range(times_solved):
             states = env.reset()
             while True:
-                actions = self.act(states, add_noise=False)
+                actions = self.act(states, train=False)
                 states, rewards, dones, _ = env.step(actions)
 
                 total_reward += rewards
