@@ -63,4 +63,4 @@ class MultiSacAgent(MultiAgent):
     def save_agents_weights(self):
         for i, agent in enumerate(self.agents):
             torch.save(agent.policy.state_dict(), 
-                   '{}_actor{}_checkpoint.ph'.format(agent.name, i))
+                   '{}_policy{}_checkpoint.ph'.format(agent.name, i))
