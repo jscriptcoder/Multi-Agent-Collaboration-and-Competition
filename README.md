@@ -41,3 +41,5 @@ The environment is considered solved, when the average (over 100 episodes) of th
 ### Instructions
 
 Follow the instructions in `Tennis.ipynb` to get started with training your own agent!
+
+Note: Sometimes Github cannot load Jupyter notebooks. If that's the case, click [here]() to visualize it using nbviewer.
