@@ -42,4 +42,4 @@ The environment is considered solved, when the average (over 100 episodes) of th
 
 Follow the instructions in `Tennis.ipynb` to get started with training your own agent!
 
-Note: Sometimes Github cannot load Jupyter notebooks. If that's the case, click [here]() to visualize it using nbviewer.
+Note: Sometimes Github cannot load Jupyter notebooks. If that's the case, click [here](https://nbviewer.jupyter.org/github/jscriptcoder/Multi-Agent-Collaboration-and-Competition/blob/master/Tennis.ipynb) to visualize it using nbviewer.
