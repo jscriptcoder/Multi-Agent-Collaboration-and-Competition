@@ -46,35 +46,35 @@ config.use_ou_noise = False
 #play_game(ml_agent, config.env_solved)
 
 # TD3
-config.hidden_actor = (64, 64)
-config.hidden_critic = (256, 256)
-config.lr_actor = 1e-3
-config.lr_critic = 1e-3
-config.activ_actor = F.relu
-config.activ_critic = F.relu
-config.optim_actor = Adam
-config.optim_critic = Adam
-
-ml_agent = MultiAgent(TD3Agent, config)
-ml_agent.load_agents_weights()
-play_game(ml_agent, config.env_solved)
-
-# SAC
-#from agent.multi_sac_agent import MultiSacAgent
-#
 #config.hidden_actor = (64, 64)
-#config.hidden_critic = (512,)
+#config.hidden_critic = (256, 256)
 #config.lr_actor = 1e-3
 #config.lr_critic = 1e-3
 #config.activ_actor = F.relu
 #config.activ_critic = F.relu
 #config.optim_actor = Adam
 #config.optim_critic = Adam
-#config.log_std_min=-20
-#config.log_std_max=2
-#config.alpha_auto_tuning = False
 #
-#ml_agent = MultiSacAgent(config)
+#ml_agent = MultiAgent(TD3Agent, config)
 #ml_agent.load_agents_weights()
-#
 #play_game(ml_agent, config.env_solved)
+
+# SAC
+from agent.multi_sac_agent import MultiSacAgent
+
+config.hidden_actor = (64, 64)
+config.hidden_critic = (512,)
+config.lr_actor = 1e-3
+config.lr_critic = 1e-3
+config.activ_actor = F.relu
+config.activ_critic = F.relu
+config.optim_actor = Adam
+config.optim_critic = Adam
+config.log_std_min=-20
+config.log_std_max=2
+config.alpha_auto_tuning = False
+
+ml_agent = MultiSacAgent(config)
+ml_agent.load_agents_weights()
+
+play_game(ml_agent, config.env_solved)
