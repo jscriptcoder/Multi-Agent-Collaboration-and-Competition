@@ -186,6 +186,14 @@ class MultiAgent():
             torch.save(agent.actor_local.state_dict(), 
                        '{}_actor{}_checkpoint.ph'.format(agent.name, i))
     
+    def load_agents_weights(self):
+        for i, agent in enumerate(self.agents):
+            agent.actor_local.\
+                load_state_dict(\
+                                torch.load('{}_actor{}_checkpoint.ph'.\
+                                           format(agent.name, i), 
+                                           map_location='cpu'))
+    
     def eval_episode(self):
         num_agents = self.config.num_agents
         times_solved = self.config.times_solved

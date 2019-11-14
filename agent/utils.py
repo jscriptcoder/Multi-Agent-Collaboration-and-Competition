@@ -193,3 +193,8 @@ def get_time_elapsed(start, end=None):
         end = time.time()
     elapsed = round(end-start)
     return str(datetime.timedelta(seconds=elapsed))
+
+def play_game(ml_agent, min_score):
+    score = -np.inf
+    while score < min_score:
+        score = ml_agent.eval_episode()

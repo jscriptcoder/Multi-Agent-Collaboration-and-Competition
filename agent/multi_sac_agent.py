@@ -64,3 +64,11 @@ class MultiSacAgent(MultiAgent):
         for i, agent in enumerate(self.agents):
             torch.save(agent.policy.state_dict(), 
                    '{}_policy{}_checkpoint.ph'.format(agent.name, i))
+    
+    def load_agents_weights(self):
+        for i, agent in enumerate(self.agents):
+            agent.policy.\
+                load_state_dict(\
+                                torch.load('{}_policy{}_checkpoint.ph'.\
+                                           format(agent.name, i), 
+                                           map_location='cpu'))
