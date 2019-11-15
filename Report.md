@@ -6,9 +6,9 @@ What we're dealing with here is an envirornment with continuous observation spac
 
 I'll try to solve this environment with three state-of-the-art DRL algorithms, using the latest Actor-Critic methods:
 
-- Deep Deterministic Policy Gradient (a.k.a DDPG). [Paper](https://arxiv.org/abs/1509.02971)
-- Twin Delayed DDPG or TD3. [Paper](https://arxiv.org/abs/1802.09477)
-- Soft Actor Critic or SAC. [Paper](https://arxiv.org/abs/1801.01290). Improving on this one, there is a [second paper](https://arxiv.org/abs/1812.05905)
+- Deep Deterministic Policy Gradient (a.k.a **DDPG**). [Paper](https://arxiv.org/abs/1509.02971)
+- Twin Delayed DDPG or **TD3**. [Paper](https://arxiv.org/abs/1802.09477)
+- Soft Actor Critic or **SAC**. [Paper](https://arxiv.org/abs/1801.01290). Improving on this one, there is a [second paper](https://arxiv.org/abs/1812.05905)
 
 ### Hyperparameters
 
