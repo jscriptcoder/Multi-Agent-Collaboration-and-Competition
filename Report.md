@@ -86,7 +86,7 @@ When we reach env_solved avarage score (our target score for this environment), 
 - ```log_std_max=2```, max value of the log std calculated by the Gaussian policy
 - ```alpha = 0.01```,
 - ```alpha_auto_tuning = True```, when ```True```, ```alpha``` is a learnable
-- ```optim_alpha = Adam```, optimization algorithm for alpha
+- ```optim_alpha = Adam```, optimizer for alpha
 - ```lr_alpha = 3e-4```, learning rate for alpha
 
 TODO
