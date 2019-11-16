@@ -89,8 +89,6 @@ When we reach env_solved avarage score (our target score for this environment), 
 - ```optim_alpha = Adam```, optimizer for alpha
 - ```lr_alpha = 3e-4```, learning rate for alpha
 
-TODO
-
 ### Algorithms
 **Deep Deterministic Policy Gradient or DDPG**:
 
