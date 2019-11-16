@@ -91,7 +91,9 @@ When we reach env_solved avarage score (our target score for this environment), 
 
 ### Algorithms
 **Deep Deterministic Policy Gradient or DDPG**:
-DDPG is an off-policy algorithm considered to be the Q-learning version for continuos action space. It uses four neural nets: a Q-network, a (deterministic) policy network and their respective target networks. The Q-function is used to learn the policy, and it does so by using off policy data and the Bellman equation. Remember, in Q-learning if we know the optimal ```Q(s,a)```, finding the optimal action in a given state is as simple as solving: <img src="images/optimal_action.svg" />
+DDPG is an off-policy algorithm considered to be the Q-learning version for continuos action space. It uses four neural nets: a Q-network, a (deterministic) policy network and their respective target networks. The Q-function is used to learn the policy, and it does so by using off policy data and the Bellman equation. Remember, in Q-learning if we know the optimal ```Q(s,a)```, finding the optimal action in a given state is as simple as solving:
+
+<p style="text-align: center"><img src="images/optimal_action.svg" /></p>
 
 
 **Twin Delayed DDPG or TD3**:
