@@ -102,8 +102,10 @@ Finding <img src="images/max_a.svg"> when the action space is continous is not t
 <p align="center"><img src="images/max_q_approx.svg" /></p>
 
 DDPG uses a two tricks to make the learning more stable:
-1. Replay Buffer: Since DDPG is an off policy algorithm, it can make use of Replay Buffers to store previous experiences and
-2. Target Network
+
+1. _Replay Buffer_: since DDPG is an off policy algorithm, it can make use of a replay buffer to store previous experiences to later on sample random and uncorrelated mini batches to learn from
+
+2. _Target Network_: these networks will be a time-delayed copies of the original networks that slowly track the learned networks. They're used to calculate the target part for the loss functions
 
 **Twin Delayed DDPG or TD3**:
 
