@@ -96,8 +96,14 @@ DDPG is an off-policy algorithm considered to be the Q-learning version for cont
 
 <p align="center"><img src="images/optimal_action.svg" /></p>
 
-Finding <img src="images/max_a.svg"> when the action space is continous is not trivial
+Finding <img src="images/max_a.svg"> when the action space is continous is not trivial. But because of this continuity in the action space, we assume that the optimal ```Q(s,a)``` is differentiable with respect to action. This makes it possible to use a gradient based learning rule for ```μ(s)``` and instead approximate it:
 
+
+<p align="center"><img src="images/max_q_approx.svg" /></p>
+
+DDPG uses a two tricks to make the learning more stable:
+1. Replay Buffer: Since DDPG is an off policy algorithm, it can make use of Replay Buffers to store previous experiences and
+2. Target Network
 
 **Twin Delayed DDPG or TD3**:
 
