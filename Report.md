@@ -136,7 +136,19 @@ Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/
 
 ### Neural Networks Architecture
 
-TODO
+In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectified-linear-activation-function-for-deep-learning-neural-networks/) activation function in all the NN layers, and also [Adam](https://machinelearningmastery.com/adam-optimization-algorithm-for-deep-learning/) optimizer as a gradient descent algorithm.
+
+1. **DDPG**:
+
+<p align="center"><img src="images/ddpg_nets.png" /></p>
+
+2. **TD3**:
+
+<p align="center"><img src="images/td3_nets.png" /></p>
+
+3. **SAC**:
+
+<p align="center"><img src="images/sac_nets.png" /></p>
 
 ## Plot of Rewards
 
@@ -152,7 +164,7 @@ As seen in the [jupyter notebook](Tennis.ipynb), the environment was solved, 100
 
 The environment was solved with an avarage score of 2.1 (and a max score of 2.7), after 1716 episodes and 0:42:42 running on CPU.
 
-2. **SAC**:
+3. **SAC**:
 
 <p align="center"><img src="images/sac_avg_score.png" /></p>
 
