@@ -109,9 +109,9 @@ DDPG uses two tricks to make the learning more stable:
 
 The Q-Network is updated by minimizing the mean squared Bellman equation as followed:
 
-<p align="center"><img src="images/loss_q.svg" /></p>
+<p align="center"><img src="images/loss_q.svg?23" /></p>
 
-where ```(s,r,a,s',d)~_D_``` are random mini batches of transitions, and ```d``` indicates whether state ```s'``` is terminal
+where ```(s,r,a,s',d)~D``` are random mini batches of transitions, and ```d``` indicates whether state ```s'``` is terminal
 
 **Twin Delayed DDPG or TD3**:
 
