@@ -101,11 +101,16 @@ Finding <img src="images/max_a.svg"> when the action space is continous is not t
 
 <p align="center"><img src="images/max_q_approx.svg" /></p>
 
-DDPG uses a two tricks to make the learning more stable:
+DDPG uses two tricks to make the learning more stable:
 
-1. _Replay Buffer_: since DDPG is an off policy algorithm, it can make use of a replay buffer to store previous experiences to later on sample random and uncorrelated mini batches to learn from
+1. _Replay Buffer_: since DDPG is an off policy algorithm, it can make use of a replay buffer to store previous experiences to later on sample random and uncorrelated mini batches to learn from.
 
-2. _Target Network_: these networks will be a time-delayed copies of the original networks that slowly track the learned networks. They're used to calculate the target part for the loss functions
+2. _Target Networks_: these networks will be a time-delayed copies of the original ones that slowly track the learned networks. They prevent the "chasing a moving target" effect when using the same parameters (weights) for estimating the target and the Q value. This is because there is a big correlation between the TD target and the parameters we are changing. These target networks are [softly updated](https://github.com/jscriptcoder/Multi-Agent-Collaboration-and-Competition/blob/master/agent/utils.py#L17) by polyak averaging: <img src="images/polyak_avg.svg" />
+
+The Q-Network is updated by minimizing the mean squared Bellman equation as followed:
+
+<p align="center"><img src="images/loss_q.svg" /></p>
+
 
 **Twin Delayed DDPG or TD3**:
 
