@@ -111,6 +111,7 @@ The Q-Network is updated by minimizing the mean squared Bellman equation as foll
 
 <p align="center"><img src="images/loss_q.svg" /></p>
 
+where ```(s,r,a,s',d)~_D_``` are random mini batches of transitions, and ```d``` indicates whether state ```s'``` is terminal
 
 **Twin Delayed DDPG or TD3**:
 
