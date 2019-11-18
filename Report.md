@@ -91,7 +91,9 @@ When we reach env_solved avarage score (our target score for this environment), 
 
 ### Algorithms
 
-TODO: Explain Multi Agent architecture
+**Multi Agent architecture**:
+
+TODO
 
 **Deep Deterministic Policy Gradient or DDPG**:
 
@@ -156,6 +158,8 @@ In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectifie
 3. **SAC**:
 
 <img src="images/sac_nets.png" width="500" />
+
+**About Gaussian Network**: TODO
 
 ## Plot of Rewards
 
