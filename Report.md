@@ -138,11 +138,17 @@ TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm.
 
 3. _Action noise regularisation_: Adding noise to the target action makes it harder for the policy to exploit Q-function errors by smoothing out Q along changes in action. 
 
+TODO
+
+<img src="images/td3_algo.svg" />
+
 Sources: [OpenAI, Spinning up, Twin Delayed DDPG](https://spinningup.openai.com/en/latest/algorithms/td3.html), [TD3: Learning To Run With AI](https://towardsdatascience.com/td3-learning-to-run-with-ai-40dfc512f93)
 
 **Soft Actor Critic or SAC**:
 
 TODO
+
+<img src="images/sac_algo.svg" />
 
 Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/en/latest/algorithms/sac.html), [Soft Actor-Critic Demystified](https://towardsdatascience.com/soft-actor-critic-demystified-b8427df61665)
 
