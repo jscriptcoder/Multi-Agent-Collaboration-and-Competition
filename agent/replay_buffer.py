@@ -4,10 +4,10 @@ from collections import deque
 
 class ReplayBuffer:
     """This buffer will help to reduce correlation between experiences.
-    It uses a deque data structure as buffer. Will store experiences as 
+    It uses a deque data structure as buffer. Will store experiences as
     namedtuples:
         experience = (state, action, reward, next_state, done)
-        
+
     Args:
         buffer_size (int)
         batch_size (int)
@@ -18,16 +18,16 @@ class ReplayBuffer:
 
     def add(self, experience):
         """Save experience in memory
-        
+
         Args:
-            experience (Named Tuple): 
+            experience (Named Tuple):
                 (state, action, reward, next_action, done)
         """
         self.buffer.append(experience)
 
     def sample(self):
         """Sample batch_size random experiences from memory
-        
+
         Returns:
             List of tuples: batch_size of experiences
         """
