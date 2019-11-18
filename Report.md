@@ -111,7 +111,12 @@ The Q-Network is updated by minimizing the mean squared Bellman equation as foll
 
 <p align="center"><img src="images/loss_q.svg" /></p>
 
-where ```(s,r,a,s',d)~D``` are random mini batches of transitions, and ```d``` indicates whether state ```s'``` is terminal
+where ```(s,r,a,s',d)~D``` are random mini batches of transitions, and ```d``` indicates whether state ```s'``` is terminal.
+
+For our policy function, our objective is to maximize the expected return, so we want to learn a ```μ(s)``` that maximizes ```Q(s,a)```. Now, remember that our action space is continuous, so we're assuming that the Q-function is differentiable with respect to action, we can then simply perform gradient ascent with respect to policy parameters to solve:
+
+
+<p align="center"><img src="images/max_policy.svg" /></p>
 
 **Twin Delayed DDPG or TD3**:
 
