@@ -124,13 +124,16 @@ For the policy function, our objective is to maximize the expected return, so we
 
 One more detail about this algorithm is how to go about exploration for continuous action space. When dealing with discrete action spaces, exploration is done by selecting a random action using, for example, epsilon-greedy algorithm or Boltzmann exploration. There is an [interesting article](https://medium.com/emergent-future/simple-reinforcement-learning-with-tensorflow-part-7-action-selection-strategies-for-exploration-d3a97b7cceaf) explaining these two strategies for action selection. For continuous action spaces instead, we can simply add noise to the actions. The authors of the original DDPG paper recommended time-correlated [OU noise](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process), but more recent results suggest that uncorrelated, mean-zero Gaussian noise works perfectly well, and this is actually the strategy I'm using for exploration. Another strategy that seems to work better is to use parameter noise. Parameter noise adds adaptive noise to the parameters of the neural network policy, rather than to its action space, helping the algorithm explore its environments more effectively. If you wanna know more about this technique, refer to [this article](https://openai.com/blog/better-exploration-with-parameter-noise/) from OpenAI.
 
-Sources: [OpenAI, Spinning up, Deep Deterministic Policy Gradient](https://spinningup.openai.com/en/latest/algorithms/ddpg.html), [Deep Deterministic Policy Gradients Explained](https://towardsdatascience.com/deep-deterministic-policy-gradients-explained-2d94655a9b7b)
+<img src="images/ddpg_algo.svg" />
 
-<p align="center"><img src="images/ddpg_algo.svg" /></p>
+Sources: [OpenAI, Spinning up, Deep Deterministic Policy Gradient](https://spinningup.openai.com/en/latest/algorithms/ddpg.html), [Deep Deterministic Policy Gradients Explained](https://towardsdatascience.com/deep-deterministic-policy-gradients-explained-2d94655a9b7b)
 
 **Twin Delayed DDPG or TD3**:
 
-TODO
+TD3 is the succesor of DDPG algorithm. Even though DDPG is capable to providing excellent results for continuous action spaces, it also has its drawbacks. It's quite sensitive to hyperparameters and other kind of tuning. A commong failure in DDPG is that its Q-function tends to overstimate the Q-values, which can make the agent fall into local optimal or experience catastrophic forgetting. TD3 addresses these issues with three interesting tricks:
+1. Clipped Double-Q Learning
+2. Delayed updates of the actor
+3. Action noise regularisation
 
 Sources: [OpenAI, Spinning up, Twin Delayed DDPG](https://spinningup.openai.com/en/latest/algorithms/td3.html), [TD3: Learning To Run With AI](https://towardsdatascience.com/td3-learning-to-run-with-ai-40dfc512f93)
 
