@@ -22,7 +22,7 @@ class GaussianPolicy(BaseNetwork):
         
         self.build_layers(dims)
 
-        # Will depends on state
+        # Will depend on state
         self.log_std = nn.Linear(dims[-2], dims[-1])
         
         self.reset_parameters()
