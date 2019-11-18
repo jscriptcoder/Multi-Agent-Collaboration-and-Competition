@@ -144,13 +144,19 @@ TODO
 
 <p align="center"><img src="images/ddpg_avg_score.png" /></p>
 
+As seen in the [jupyter notebook](Tennis.ipynb), the environment was solved, 100 times consecutively, with an avarage score of 0.9, after 918 episodes and 0:15:53 running on CPU.
+
 2. **TD3**:
 
 <p align="center"><img src="images/td3_avg_score.png" /></p>
 
+The environment was solved with an avarage score of 2.125, after 1716 episodes and 0:42:42 running on CPU.
+
 2. **SAC**:
 
 <p align="center"><img src="images/sac_avg_score.png" /></p>
+
+The environment was solved with an avarage score of 1.727, after 1570 episodes and 0:41:21 running on CPU.
 
 ## Ideas for Future Work
 TODO
