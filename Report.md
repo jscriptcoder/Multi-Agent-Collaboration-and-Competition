@@ -141,6 +141,10 @@ Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/
 
 In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectified-linear-activation-function-for-deep-learning-neural-networks/) activation function, and also [Adam](https://machinelearningmastery.com/adam-optimization-algorithm-for-deep-learning/) optimizer as a gradient descent algorithm.
 
+**About Actor Network**: The goal of this network is to map state => actions (```μ(s)```). In the forward pass, the last layer is [passed through](https://github.com/jscriptcoder/Multi-Agent-Collaboration-and-Competition/blob/master/agent/actor.py#L25) a Tanh activation to get values between -1 and 1, which is the range of the actions
+
+**About Critic Network**: The goal of this network is to map state and action => value (```Q(s,a)```). It'll take the state and actions as inputs, concatenate them, and pass them through the layers. The last layer or output is one single value without activation function.
+
 1. **DDPG**:
 
 <img src="images/ddpg_nets.png" width="500" />
@@ -152,12 +156,6 @@ In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectifie
 3. **SAC**:
 
 <img src="images/sac_nets.png" width="500" />
-
-**About Actor Network**: In the forward pass, The last layer is [passed through](https://github.com/jscriptcoder/Multi-Agent-Collaboration-and-Competition/blob/master/agent/actor.py#L25) a Tanh activation to get values between -1 and 1
-
-**About Critic Network**:
-
-
 
 ## Plot of Rewards
 
