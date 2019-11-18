@@ -159,4 +159,5 @@ The environment was solved with an avarage score of 2.1 (and a max score of 2.7)
 The environment was solved with an avarage score of 1.7 (and a max score of 2.6), after 1570 episodes and 0:41:21 running on CPU.
 
 ## Ideas for Future Work
-TODO
+
+TODO: More hyperparameter tuning. Longer training (no early stop)
