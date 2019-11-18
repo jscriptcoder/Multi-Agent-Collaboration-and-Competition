@@ -120,12 +120,13 @@ where ```(s,r,a,s',d)~D``` are random mini batches of transitions, and ```d``` i
 
 For the policy function, our objective is to maximize the expected return, so we want to learn a ```μ(s)``` that maximizes ```Q(s,a)```. Now, remember that our action space is continuous, so we're assuming that the Q-function is differentiable with respect to action, we can then simply perform gradient ascent with respect to policy parameters to solve:
 
-
 <p align="center"><img src="images/max_policy.svg" /></p>
 
 One more detail about this algorithm is how to go about exploration for continuous action space. When dealing with discrete action spaces, exploration is done by selecting a random action using, for example, epsilon-greedy algorithm or Boltzmann exploration. There is an [interesting article](https://medium.com/emergent-future/simple-reinforcement-learning-with-tensorflow-part-7-action-selection-strategies-for-exploration-d3a97b7cceaf) explaining these two strategies for action selection. For continuous action spaces instead, we can simply add noise to the actions. The authors of the original DDPG paper recommended time-correlated [OU noise](https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process), but more recent results suggest that uncorrelated, mean-zero Gaussian noise works perfectly well, and this is actually the strategy I'm using for exploration. Another strategy that seems to work better is to use parameter noise. Parameter noise adds adaptive noise to the parameters of the neural network policy, rather than to its action space, helping the algorithm explore its environments more effectively. If you wanna know more about this technique, refer to [this article](https://openai.com/blog/better-exploration-with-parameter-noise/) from OpenAI.
 
 Sources: [OpenAI, Spinning up, Deep Deterministic Policy Gradient](https://spinningup.openai.com/en/latest/algorithms/ddpg.html), [Deep Deterministic Policy Gradients Explained](https://towardsdatascience.com/deep-deterministic-policy-gradients-explained-2d94655a9b7b)
+
+<p align="center"><img src="images/ddpg_algo.svg" /></p>
 
 **Twin Delayed DDPG or TD3**:
 
