@@ -140,33 +140,33 @@ In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectifie
 
 1. **DDPG**:
 
-<p align="center"><img src="images/ddpg_nets.png" /></p>
+<img src="images/ddpg_nets.png" width="500" />
 
 2. **TD3**:
 
-<p align="center"><img src="images/td3_nets.png" /></p>
+<img src="images/td3_nets.png" width="500" />
 
 3. **SAC**:
 
-<p align="center"><img src="images/sac_nets.png" /></p>
+<img src="images/sac_nets.png" width="500" />
 
 ## Plot of Rewards
 
 1. **DDPG**:
 
-<p align="center"><img src="images/ddpg_avg_score.png" /></p>
+<img src="images/ddpg_avg_score.png" />
 
 As seen in the [jupyter notebook](Tennis.ipynb), the environment was solved, 100 times consecutively, with an avarage score of 0.9 (and a max score of 2.6), after 918 episodes and 0:15:53 running on CPU.
 
 2. **TD3**:
 
-<p align="center"><img src="images/td3_avg_score.png" /></p>
+<img src="images/td3_avg_score.png" />
 
 The environment was solved with an avarage score of 2.1 (and a max score of 2.7), after 1716 episodes and 0:42:42 running on CPU.
 
 3. **SAC**:
 
-<p align="center"><img src="images/sac_avg_score.png" /></p>
+<img src="images/sac_avg_score.png" />
 
 The environment was solved with an avarage score of 1.7 (and a max score of 2.6), after 1570 episodes and 0:41:21 running on CPU.
 
