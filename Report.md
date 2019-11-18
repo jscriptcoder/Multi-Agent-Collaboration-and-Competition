@@ -118,13 +118,21 @@ For our policy function, our objective is to maximize the expected return, so we
 
 <p align="center"><img src="images/max_policy.svg" /></p>
 
+TODO
+
+Sources: [OpenAI, Spinning up, Deep Deterministic Policy Gradient](https://spinningup.openai.com/en/latest/algorithms/ddpg.html), [Deep Deterministic Policy Gradients Explained](https://towardsdatascience.com/deep-deterministic-policy-gradients-explained-2d94655a9b7b)
+
 **Twin Delayed DDPG or TD3**:
 
 TODO
 
+Sources: [OpenAI, Spinning up, Twin Delayed DDPG](https://spinningup.openai.com/en/latest/algorithms/td3.html), [TD3: Learning To Run With AI](https://towardsdatascience.com/td3-learning-to-run-with-ai-40dfc512f93)
+
 **Soft Actor Critic or SAC**:
 
 TODO
+
+Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/en/latest/algorithms/sac.html), [Soft Actor-Critic Demystified](https://towardsdatascience.com/soft-actor-critic-demystified-b8427df61665)
 
 ### Neural Networks Architecture
 
@@ -133,10 +141,16 @@ TODO
 ## Plot of Rewards
 
 1. **DDPG**:
-TODO
+
+<p align="center"><img src="images/ddpg_avg_score.png" /></p>
 
 2. **TD3**:
-TODO
+
+<p align="center"><img src="images/td3_avg_score.png" /></p>
+
+2. **SAC**:
+
+<p align="center"><img src="images/sac_avg_score.png" /></p>
 
 ## Ideas for Future Work
 TODO
