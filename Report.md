@@ -90,6 +90,9 @@ When we reach env_solved avarage score (our target score for this environment), 
 - ```lr_alpha = 3e-4```, learning rate for alpha
 
 ### Algorithms
+
+TODO: Explain Multi Agent architecture
+
 **Deep Deterministic Policy Gradient or DDPG**:
 
 DDPG is an off-policy algorithm considered to be the Q-learning version for continuos action space. It uses four neural nets: a Q-network, a (deterministic) policy network and their respective target networks. The Q-function is used to learn the policy, and it does so by using off policy data and the Bellman equation. Remember, in Q-learning if we know the optimal ```Q(s,a)```, finding the optimal action in a given state is as simple as solving:
@@ -136,7 +139,7 @@ Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/
 
 ### Neural Networks Architecture
 
-In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectified-linear-activation-function-for-deep-learning-neural-networks/) activation function in all the NN layers, and also [Adam](https://machinelearningmastery.com/adam-optimization-algorithm-for-deep-learning/) optimizer as a gradient descent algorithm.
+In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectified-linear-activation-function-for-deep-learning-neural-networks/) activation function, and also [Adam](https://machinelearningmastery.com/adam-optimization-algorithm-for-deep-learning/) optimizer as a gradient descent algorithm.
 
 1. **DDPG**:
 
@@ -149,6 +152,12 @@ In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectifie
 3. **SAC**:
 
 <img src="images/sac_nets.png" width="500" />
+
+**About Actor Network**: In the forward pass, The last layer is [passed through](https://github.com/jscriptcoder/Multi-Agent-Collaboration-and-Competition/blob/master/agent/actor.py#L25) a Tanh activation to get values between -1 and 1
+
+**About Critic Network**:
+
+
 
 ## Plot of Rewards
 
