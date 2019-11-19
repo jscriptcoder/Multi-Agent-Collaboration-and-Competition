@@ -188,8 +188,10 @@ The way we optimize the policy makes use of the [reparameterization trick](https
 
 The Tanh here ensures that actions are bounded to a finite range. It also changes the distribution. Before the Tanh the SAC policy is a factored Gaussian, but after the Tanh it is not. You can still compute the log-probabilities of actions in closed form by Enforcing Action Bounds ([Appendix C](https://arxiv.org/pdf/1812.05905.pdf)): We use an unbounded gaussian as the action distribution. However, in practice, the actions needs to be bounded to a finite interval. We apply then an invertible squashing function, Tanh, to the gaussian samples, and employ the change of variables formula to compute the likelihoods of the bounded actions. Let's say that ```u``` is a random variable and ```µ(u|s)``` the corresponding density with infinite support. Then ```a = tanh(u)```, where tanh is applied elementwise, is a random variable with support in (−1, 1). Then the log-likelihood has a simple form:
 
-<p align="center"><img src="images/action_bounds.png" /></p>
+<p align="center"><img src="images/action_bounds.png" width="400" /></p>
 
+Algorithm:
+-
 <img src="images/sac_algo.png" />
 
 Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/en/latest/algorithms/sac.html), [Soft Actor-Critic Demystified](https://towardsdatascience.com/soft-actor-critic-demystified-b8427df61665)
