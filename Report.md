@@ -178,6 +178,10 @@ Another important aspect of SAC is the fact that it also incorporates the clippe
 
 <p align="center"><img src="images/sac_q_update.png" width="700" /></p>
 
+As for the policy, it should, in each state, act to maximize the expected future return plus expected future entropy:
+
+<p align="center"><img src="images/loss_sac_policy.svg" /></p>
+
 TODO
 ---
 Something important to mention about this algorithm is Enforcing Action Bounds ([Appendix C](https://arxiv.org/pdf/1812.05905.pdf)). We use an unbounded gaussian as the action distribution. However, in practice, the actions needs to be bounded to a finite interval. We apply then an invertible squashing function, Tanh, to the gaussian samples, and employ the change of variables formula to compute the likelihoods of the bounded actions. In the other words, let u ∈ R
