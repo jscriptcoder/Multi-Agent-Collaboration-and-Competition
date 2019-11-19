@@ -172,6 +172,14 @@ The main feature of SAC is entropy regularization: instead of just trying to max
 
 where ```α > 0``` is the trade-off coefficient.
 
+TODO
+Something important to mention about this algorithm is Enforcing Action Bounds ([Appendix C](https://arxiv.org/pdf/1812.05905.pdf)). We use an unbounded gaussian as the action distribution. However, in practice, the actions needs to be bounded to a finite interval. We apply then an invertible squashing function, Tanh, to the gaussian samples, and employ the change of variables formula to compute the likelihoods of the bounded actions. In the other words, let u ∈ R
+D be a random variable and µ(u|s) the corresponding
+density with infinite support. Then a = tanh(u), where tanh is applied elementwise, is a random
+variable with support in (−1, 1) with a density given by
+
+------
+
 <img src="images/sac_algo.svg" />
 
 Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/en/latest/algorithms/sac.html), [Soft Actor-Critic Demystified](https://towardsdatascience.com/soft-actor-critic-demystified-b8427df61665)
