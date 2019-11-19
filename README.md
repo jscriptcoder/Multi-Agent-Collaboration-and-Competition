@@ -7,7 +7,7 @@ See [Project Report](Report.md) for more details.
 For this project, I'll be working with the [Tennis](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#tennis) environment.
 
 #### Demo
-1. Untrained Agent:
+1. Untrained agent:
 <img src="recordings/untrained_agent.gif" width="500" />
 
 2. Trained DDPG agent:
