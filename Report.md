@@ -140,7 +140,7 @@ Sources: [OpenAI, Spinning up, Deep Deterministic Policy Gradient](https://spinn
 
 TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm. Even though DDPG is capable to providing excellent results for continuous action spaces, it also has its drawbacks. It's quite sensitive to hyperparameters and other kind of tuning. A common failure in DDPG is that its Q-function tends to overstimate the Q-values, which can make the agent fall into local optimal or experience catastrophic forgetting. TD3 addresses these issues with three interesting tricks:
 
-1. _Clipped Double-Q Learning_: This is inspired by [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461). The idea is to use two Q-networks and use the smallest of the two as the Q-values to form the targets in the Bellman error loss functions:
+1. _Clipped Double-Q Learning_: This is inspired by [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461). The idea is to use two Q-networks and use the smallest of the two as the Q-values to form the targets in the Bellman error loss functions, helping fend off overestimation in the Q-function:
 
 <p align="center">
   <img src="images/clipped_double_q.svg" /><br />
@@ -172,7 +172,11 @@ The main feature of SAC is entropy regularization: instead of just trying to max
 
 where ```α > 0``` is the trade-off coefficient, also called temperature, which determines the relative importance of the entropy term versus the reward, and thus controls the stochasticity of the optimal policy. Unfortunately, choosing the optimal temperature is non-trivial, and a sub-optimal temperature can drastically degrade performance of the learning. To solve this problem, in recent researches, extension of SAC, this temperature is automatically adjusted, using automatic gradient-based methods, to the expected entropy over the visited states to match a target value:
 
-<p align="center"><img src="images/alpha_adjust.png" /></p>
+<p align="center"><img src="images/alpha_adjust.png" width="400" /></p>
+
+Another important aspect of SAC is the fact that it also incorporates the clipped double-Q trick as in TD3 to avoid overestimation of Q-values. The two Q-networks' parameters can be optimized with stochastic gradients:
+
+<p align="center"><img src="images/sac_q_update.png" width="400" /></p>
 
 TODO
 ---
