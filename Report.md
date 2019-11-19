@@ -164,23 +164,26 @@ Sources: [OpenAI, Spinning up, Twin Delayed DDPG](https://spinningup.openai.com/
 
 **Soft Actor Critic or SAC**:
 
-What we have here is another off-policy algorithm. It's considered to be the link between stochastic policy optimization and DDPG-style approaches, learning such stochastic policies, like in A2C and PPO, in an off-policy way like DDPG and TD3. 
+What we have here is another off-policy algorithm. It could be considered to be the bridge between stochastic policy optimization and DDPG-style approaches, learning such stochastic policies, like in A2C and PPO, in an off-policy way like DDPG and TD3. 
 
 The main feature of SAC is entropy regularization: instead of just trying to maximize the expected return, it also tries to maximize the policy entropy. We can think of entropy as how unpredictable a random variable is. If a random variable always takes a single value then it has zero entropy because it's not unpredictable at all. If a random variable can be any Real Number with equal probability then it has very high entropy as it is very unpredictable. This helps with exploration. Increasing entropy results in more exploration, which can accelerate learning later on. It can also prevent the policy from prematurely converging to a bad local optimum. The entropy ```H``` is computed as followed: <img src="images/entropy.svg" />, being ```x``` a random variable from ```P``` distribution. The agent gets a bonus reward at each time step proportional to the entropy of the policy at that timestep:
 
 <p align="center"><img src="images/entropy_reward.svg" /></p>
 
-where ```α > 0``` is the trade-off coefficient.
+where ```α > 0``` is the trade-off coefficient, also called temperature, which determines the relative importance of the entropy term versus the reward, and thus controls the stochasticity of the optimal policy. Unfortunately, choosing the optimal temperature is non-trivial, and a sub-optimal temperature can drastically degrade performance of the learning. To solve this problem, in recent researches, extension of SAC, this temperature is automatically adjusted, using automatic gradient-based methods, to the expected entropy over the visited states to match a target value:
+
+<p align="center"><img src="images/alpha_adjust.png" /></p>
 
 TODO
+---
 Something important to mention about this algorithm is Enforcing Action Bounds ([Appendix C](https://arxiv.org/pdf/1812.05905.pdf)). We use an unbounded gaussian as the action distribution. However, in practice, the actions needs to be bounded to a finite interval. We apply then an invertible squashing function, Tanh, to the gaussian samples, and employ the change of variables formula to compute the likelihoods of the bounded actions. In the other words, let u ∈ R
 D be a random variable and µ(u|s) the corresponding
 density with infinite support. Then a = tanh(u), where tanh is applied elementwise, is a random
 variable with support in (−1, 1) with a density given by
 
-------
+---
 
-<img src="images/sac_algo.svg" />
+<img src="images/sac_algo.png" />
 
 Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/en/latest/algorithms/sac.html), [Soft Actor-Critic Demystified](https://towardsdatascience.com/soft-actor-critic-demystified-b8427df61665)
 
