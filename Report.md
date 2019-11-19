@@ -140,11 +140,11 @@ TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm.
   <img src="images/loss_q2.svg" />
 </p>
 
-
-
 2. _Delayed updates of the actor_: Actor-Critic methods have some issues when using target networks. This is caused by the interaction between the policy (actor) and value (critic). The training of the agent diverges when a poor policy is overestimated. Our agent's policy will then continue to get worse as it is updating on states with a lot of error. The idea is to update the policy network (and its target) less frequently than the value network, which makes it more stable and reduce errors before it is used to update the policy network.
 
-3. _Action noise regularisation_: Adding noise to the target action makes it harder for the policy to exploit Q-function errors by smoothing out Q along changes in action. Deterministic policy methods have a tendency to produce target values with high variance when updating the critic. This noise added to the target and avaraging over mini batches has the effect of reducing this variance. The range of noise is clipped in order to keep the target value close to the original action.
+3. _Action noise regularisation_: Adding noise to the target action makes it harder for the policy to exploit Q-function errors by smoothing out Q along changes in action. Deterministic policy methods have a tendency to produce target values with high variance when updating the critic. This noise added to the target and avaraging over mini batches has the effect of reducing this variance. The range of noise is clipped in order to keep the target value close to the original action:
+
+<p align="center"><img src="images/smooth_actions.svg" /></p>
 
 TODO
 
