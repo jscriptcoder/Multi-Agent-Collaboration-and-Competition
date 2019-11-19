@@ -8,7 +8,7 @@ For this project, I'll be working with the [Tennis](https://github.com/Unity-Tec
 
 #### Demo
 1. Untrained Agent:
-TODO
+<img src="recordings/untrained_agent.gif" width="500" />
 
 2. Trained DDPG agent:
 <img src="recordings/ddpg_game.gif" width="500" />
