@@ -166,7 +166,9 @@ Sources: [OpenAI, Spinning up, Twin Delayed DDPG](https://spinningup.openai.com/
 
 What we have here is another off-policy algorithm. It's considered to be the link between stochastic policy optimization and DDPG-style approaches, learning such stochastic policies, like in A2C and PPO, in an off-policy way like DDPG and TD3. 
 
-The main feature of SAC is entropy regularization: instead of just trying to maximize the expected return, it also tries to maximize the policy entropy. We can think of entropy as how unpredictable a random variable is. If a random variable always takes a single value then it has zero entropy because it's not unpredictable at all. If a random variable can be any Real Number with equal probability then it has very high entropy as it is very unpredictable. This helps with exploration. Increasing entropy results in more exploration, which can accelerate learning later on. It can also prevent the policy from prematurely converging to a bad local optimum. The entropy _```H```_ is computed as followed: <img src="entropy.svg" />, being ```x``` a random variable from ```P``` distribution
+The main feature of SAC is entropy regularization: instead of just trying to maximize the expected return, it also tries to maximize the policy entropy. We can think of entropy as how unpredictable a random variable is. If a random variable always takes a single value then it has zero entropy because it's not unpredictable at all. If a random variable can be any Real Number with equal probability then it has very high entropy as it is very unpredictable. This helps with exploration. Increasing entropy results in more exploration, which can accelerate learning later on. It can also prevent the policy from prematurely converging to a bad local optimum. The entropy ```H``` is computed as followed: <img src="images/entropy.svg" />, being ```x``` a random variable from ```P``` distribution. The agent gets a bonus reward at each time step proportional to the entropy of the policy at that timestep:
+
+<p align="center"><img src="images/entropy_reward.svg" /></p>
 
 <img src="images/sac_algo.svg" />
 
