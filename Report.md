@@ -134,7 +134,13 @@ TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm.
 
 1. _Clipped Double-Q Learning_: This is inspired by [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461). The idea is to use two Q-networks and use the smallest of the two as the Q-values to form the targets in the Bellman error loss functions:
 
-<p align="center"><img src="images/clipped_double_q.svg" /></p>
+<p align="center">
+  <img src="images/clipped_double_q.svg" /><br />
+  <img src="images/loss_q1.svg" /><br />
+  <img src="images/loss_q2.svg" />
+</p>
+
+
 
 2. _Delayed updates of the actor_: Actor-Critic methods have some issues when using target networks. This is caused by the interaction between the policy (actor) and value (critic). The training of the agent diverges when a poor policy is overestimated. Our agent's policy will then continue to get worse as it is updating on states with a lot of error. The idea is to update the policy network (and its target) less frequently than the value network, which makes it more stable and reduce errors before it is used to update the policy network.
 
