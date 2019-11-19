@@ -101,7 +101,7 @@ Training a Multi Agent system is definitely more complex than training a single 
 
 There are many interesting papers out there on MARL. One of them is called [Multi Agent Actor Critic for Mixed Cooperative Competitive environments](https://papers.nips.cc/paper/7217-multi-agent-actor-critic-for-mixed-cooperative-competitive-environments.pdf). This is the approach I'm implementing here for a collaborative setup, but it can be also used for competitive or a mixed scenario. Here is how it works: the idea to use a centralized training with a decentralized execution. The way we do this is to allow the critic access to all the agents' states observed and actions taken during training. As for the actor, each one has only access to its agent's state and actions. During execution time, only the actors are present and will be using their agents' states to return their actions. A learning critic for all the agents allows us to use a different reward structure for each agent. Here we have an qverview of our multi-agent decentralized actor, centralized critic approach:
 
-<p align="center"><img src="images/marl_approach.png" /></p>
+<p align="center"><img src="images/marl_approach.png" width="400" /></p>
 
 **Deep Deterministic Policy Gradient or DDPG**:
 
