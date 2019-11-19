@@ -190,7 +190,7 @@ In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectifie
 
 <img src="images/sac_nets.png" width="500" />
 
-**About Gaussian Network**: TODO
+**About Gaussian Network**: The goal of this network is to map state => μ (mean), σ (standard deviation). With this output we can sample actions from the normal (gaussian) distribution ```Normal(mean, std)```. The policy will learn the log std instead. This is because log stds are free to take on any values in (-\infty, \infty), while stds must be nonnegative.
 
 ## Plot of Rewards
 
