@@ -146,7 +146,9 @@ TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm.
 
 <p align="center"><img src="images/smooth_actions.svg" /></p>
 
-TODO
+Finally, the policy is learned by maximizing ```Q1```: <img src="images/max_policy_q1.svg" />
+
+Same strategy as DDPG is followed for exploration in continuous action space.
 
 <img src="images/td3_algo.svg" />
 
