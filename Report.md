@@ -130,13 +130,15 @@ Sources: [OpenAI, Spinning up, Deep Deterministic Policy Gradient](https://spinn
 
 **Twin Delayed DDPG or TD3**:
 
-TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm. Even though DDPG is capable to providing excellent results for continuous action spaces, it also has its drawbacks. It's quite sensitive to hyperparameters and other kind of tuning. A commong failure in DDPG is that its Q-function tends to overstimate the Q-values, which can make the agent fall into local optimal or experience catastrophic forgetting. TD3 addresses these issues with three interesting tricks:
+TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm. Even though DDPG is capable to providing excellent results for continuous action spaces, it also has its drawbacks. It's quite sensitive to hyperparameters and other kind of tuning. A common failure in DDPG is that its Q-function tends to overstimate the Q-values, which can make the agent fall into local optimal or experience catastrophic forgetting. TD3 addresses these issues with three interesting tricks:
 
-1. _Clipped Double-Q Learning_: This is inspired by [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461). The idea is to use two Q-networks and use the smallest of the two as the Q-values to form the targets in the Bellman error loss functions.
+1. _Clipped Double-Q Learning_: This is inspired by [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461). The idea is to use two Q-networks and use the smallest of the two as the Q-values to form the targets in the Bellman error loss functions:
+
+<p align="center"><img src="images/clipped_double_q.svg" /></p>
 
 2. _Delayed updates of the actor_: Actor-Critic methods have some issues when using target networks. This is caused by the interaction between the policy (actor) and value (critic). The training of the agent diverges when a poor policy is overestimated. Our agent's policy will then continue to get worse as it is updating on states with a lot of error. The idea is to update the policy network (and its target) less frequently than the value network, which makes it more stable and reduce errors before it is used to update the policy network.
 
-3. _Action noise regularisation_: Adding noise to the target action makes it harder for the policy to exploit Q-function errors by smoothing out Q along changes in action. 
+3. _Action noise regularisation_: Adding noise to the target action makes it harder for the policy to exploit Q-function errors by smoothing out Q along changes in action. Deterministic policy methods have a tendency to produce target values with high variance when updating the critic. This noise added to the target and avaraging over mini batches has the effect of reducing this variance. The range of noise is clipped in order to keep the target value close to the original action.
 
 TODO
 
