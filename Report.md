@@ -93,7 +93,11 @@ When we reach env_solved avarage score (our target score for this environment), 
 
 **Multi Agent architecture**:
 
-TODO
+Training a Multi Agent system is definitely more complex than training a single agent. We can take two extreme approaches to train the agents in such system, and we'll discover where this complexity comes from:
+
+1. We could train all the agents independently, without coonsidering the existence of the other agents, which then will become part of the environment. As all the agents learn at the same time, this means their policies will evolve independently from one another, then the environment, as seen from the perspective of a single agent, will change dynamically and therefore becomes non-stationary. Non-stationary environments cannot guarantee convergence during learning.
+
+2. Second approach could be the completely opposite of the first one. This is called the meta-agent approach. Here a single policy is learnt for all the agents, taking the state of the environment and returning a vector with the action for all the agents. The environment in this case would return a single global reward. This joined action space will increase exponentially with the number of agents. If the environment is partially observable or the agents can see only locally, each agent will have a different observation of the environment state. This makes it difficult to disambiguate 
 
 **Deep Deterministic Policy Gradient or DDPG**:
 
