@@ -176,7 +176,7 @@ where ```α > 0``` is the trade-off coefficient, also called temperature, which 
 
 Another important aspect of SAC is the fact that it also incorporates the clipped double-Q trick as in TD3 to avoid overestimation of Q-values. The two Q-networks' parameters can be optimized with stochastic gradients:
 
-<p align="center"><img src="images/sac_q_update.png" width="400" /></p>
+<p align="center"><img src="images/sac_q_update.png" width="700" /></p>
 
 TODO
 ---
