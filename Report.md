@@ -170,6 +170,8 @@ The main feature of SAC is entropy regularization: instead of just trying to max
 
 <p align="center"><img src="images/entropy_reward.svg" /></p>
 
+where ```α > 0``` is the trade-off coefficient.
+
 <img src="images/sac_algo.svg" />
 
 Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/en/latest/algorithms/sac.html), [Soft Actor-Critic Demystified](https://towardsdatascience.com/soft-actor-critic-demystified-b8427df61665)
