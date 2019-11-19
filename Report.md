@@ -91,7 +91,7 @@ When we reach env_solved avarage score (our target score for this environment), 
 
 ### Algorithms
 
-**Multi Agent architecture**:
+#### Multi Agent architecture:
 
 Training a Multi Agent system is definitely more complex than training a single agent. We can take two extreme approaches to train the agents in such system, and we'll discover where this complexity lies:
 
@@ -103,7 +103,7 @@ There are many interesting papers out there on MARL. One of them is called [Mult
 
 <p align="center"><img src="images/marl_approach.png" width="400" /></p>
 
-**Deep Deterministic Policy Gradient or DDPG**:
+#### Deep Deterministic Policy Gradient or DDPG:
 
 DDPG is an off-policy algorithm considered to be the Q-learning version for continuos action space. It uses four neural nets: a Q-network, a (deterministic) policy network and their respective target networks. The Q-function is used to learn the policy, and it does so by using off policy data and the Bellman equation. Remember, in Q-learning if we know the optimal ```Q(s,a)```, finding the optimal action in a given state is as simple as solving:
 
@@ -136,7 +136,7 @@ One more detail about this algorithm is how to go about exploration for continuo
 
 Sources: [OpenAI, Spinning up, Deep Deterministic Policy Gradient](https://spinningup.openai.com/en/latest/algorithms/ddpg.html), [Deep Deterministic Policy Gradients Explained](https://towardsdatascience.com/deep-deterministic-policy-gradients-explained-2d94655a9b7b)
 
-**Twin Delayed DDPG or TD3**:
+#### Twin Delayed DDPG or TD3:
 
 TD3 is the succesor of DDPG algorithm, and therefore is an off-policy algorithm. Even though DDPG is capable to providing excellent results for continuous action spaces, it also has its drawbacks. It's quite sensitive to hyperparameters and other kind of tuning. A common failure in DDPG is that its Q-function tends to overstimate the Q-values, which can make the agent fall into local optimal or experience catastrophic forgetting. TD3 addresses these issues with three interesting tricks:
 
@@ -162,7 +162,7 @@ Same strategy as DDPG is followed for exploration in continuous action space.
 
 Sources: [OpenAI, Spinning up, Twin Delayed DDPG](https://spinningup.openai.com/en/latest/algorithms/td3.html), [TD3: Learning To Run With AI](https://towardsdatascience.com/td3-learning-to-run-with-ai-40dfc512f93)
 
-**Soft Actor Critic or SAC**:
+#### Soft Actor Critic or SAC:
 
 What we have here is another off-policy algorithm. It could be considered to be the bridge between stochastic policy optimization and DDPG-style approaches, learning such stochastic policies, like in A2C and PPO, in an off-policy way like DDPG and TD3. 
 
