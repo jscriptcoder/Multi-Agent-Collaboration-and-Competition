@@ -190,7 +190,7 @@ In all the networks I'm using [ReLU](https://machinelearningmastery.com/rectifie
 
 <img src="images/sac_nets.png" width="500" />
 
-**About Gaussian Network**: The goal of this network is to map state => μ (mean), σ (standard deviation). With this output we can sample actions from the normal (gaussian) distribution ```Normal(mean, std)```. The policy will learn the log std instead. This is because log stds are free to take on any values in (-\infty, \infty), while stds must be nonnegative.
+**About Gaussian Network**: The goal of this network is to map state => μ (mean), σ (standard deviation). With this output we can sample actions from the normal (gaussian) distribution ```Normal(mean, std)```. The policy will learn the log std instead. This is because log stds are free to take on any values in (-inf, inf), while stds must be non-negative. It's easier to train parameters if you don't have to enforce those kinds of constraints. The std can be obtained immediately from the log std by exponentiating them. [Source](https://spinningup.openai.com/en/latest/spinningup/rl_intro.html#stochastic-policies). It's also important to mention that the log std depends on the state, that means, it'll be learned based on the state. For this algorithm a state-independent log std seems to not work well.
 
 ## Plot of Rewards
 
