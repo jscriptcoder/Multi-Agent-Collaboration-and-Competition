@@ -182,14 +182,13 @@ As for the policy, it should, in each state, act to maximize the expected future
 
 <p align="center"><img src="images/loss_sac_policy.svg" /></p>
 
-TODO
----
-Something important to mention about this algorithm is Enforcing Action Bounds ([Appendix C](https://arxiv.org/pdf/1812.05905.pdf)). We use an unbounded gaussian as the action distribution. However, in practice, the actions needs to be bounded to a finite interval. We apply then an invertible squashing function, Tanh, to the gaussian samples, and employ the change of variables formula to compute the likelihoods of the bounded actions. In the other words, let u ∈ R
-D be a random variable and µ(u|s) the corresponding
-density with infinite support. Then a = tanh(u), where tanh is applied elementwise, is a random
-variable with support in (−1, 1) with a density given by
+The way we optimize the policy makes use of the [reparameterization trick](https://medium.com/@llionj/the-reparameterization-trick-4ff30fe92954), in which a sample from ```π(a|s)``` is drawn by computing a deterministic function of state, policy parameters, and independent noise. To illustrate: following the authors of the SAC paper, we use a squashed Gaussian policy, which means that samples are obtained according to:
 
----
+<p align="center"><img src="images/rsample_trick.svg" /></p>
+
+The Tanh here ensures that actions are bounded to a finite range. It also changes the distribution. Before the Tanh the SAC policy is a factored Gaussian, but after the Tanh it is not. You can still compute the log-probabilities of actions in closed form by Enforcing Action Bounds ([Appendix C](https://arxiv.org/pdf/1812.05905.pdf)): We use an unbounded gaussian as the action distribution. However, in practice, the actions needs to be bounded to a finite interval. We apply then an invertible squashing function, Tanh, to the gaussian samples, and employ the change of variables formula to compute the likelihoods of the bounded actions. Let's say that ```u``` is a random variable and ```µ(u|s)``` the corresponding density with infinite support. Then ```a = tanh(u)```, where tanh is applied elementwise, is a random variable with support in (−1, 1). Then the log-likelihood has a simple form:
+
+<p align="center"><img src="images/action_bounds.png" /></p>
 
 <img src="images/sac_algo.png" />
 
