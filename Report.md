@@ -190,8 +190,6 @@ The Tanh here ensures that actions are bounded to a finite range. It also change
 
 <p align="center"><img src="images/action_bounds.png" width="400" /></p>
 
-Algorithm:
--
 <img src="images/sac_algo.png" />
 
 Sources: [OpenAI, Spinning up, Soft Actor-Critic](https://spinningup.openai.com/en/latest/algorithms/sac.html), [Soft Actor-Critic Demystified](https://towardsdatascience.com/soft-actor-critic-demystified-b8427df61665)
